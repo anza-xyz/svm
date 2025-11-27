@@ -7449,6 +7449,7 @@ name = "solana-ledger"
 version = "4.0.0-alpha.0"
 dependencies = [
  "agave-feature-set",
+ "agave-random",
  "agave-reserved-account-keys",
  "agave-snapshots",
  "anyhow",
