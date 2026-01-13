@@ -425,13 +425,13 @@ impl<'a, 'ix_data> InvokeContext<'a, 'ix_data> {
 
         // This ? operator should not error out because `fn get_current_instruction_index` is also called
         // in `get_current_instruction_context`
-        let parent_index = self.transaction_context.get_current_instruction_index()?;
+        let caller_index = self.transaction_context.get_current_instruction_index()?;
         self.transaction_context.configure_next_instruction(
             program_account_index,
             instruction_accounts,
             transaction_callee_map,
             Cow::Owned(instruction.data),
-            Some(parent_index as u16),
+            Some(caller_index as u16),
         )?;
         Ok(())
     }
@@ -798,6 +798,7 @@ macro_rules! with_mock_invoke_context_with_feature_set {
             Rent::default(),
             compute_budget.max_instruction_stack_depth,
             compute_budget.max_instruction_trace_length,
+            /* number_of_top_level_instructions */ 1,
         );
         let mut sysvar_cache = SysvarCache::default();
         sysvar_cache.fill_missing_entries(|pubkey, callback| {
@@ -1168,6 +1169,7 @@ mod tests {
             )],
             Rent::default(),
             1,
+            MAX_INSTRUCTIONS,
             MAX_INSTRUCTIONS,
         );
         for _ in 0..MAX_INSTRUCTIONS {
