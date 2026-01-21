@@ -1,0 +1,228 @@
+[workspace]
+members = [
+    "callback",
+    "feature-set",
+    "log-collector",
+    "measure",
+    "program-runtime",
+    "programs/bpf_loader",
+    "programs/loader-v4",
+    "svm",
+    "timings",
+    "transaction",
+    "transaction-context",
+    "type-overrides",
+]
+
+exclude = ["programs/sbf", "svm/tests/example-programs"]
+
+resolver = "2"
+
+[workspace.package]
+version = "4.0.0-alpha.0"
+description = "Solana SVM"
+authors = ["Anza Maintainers <maintainers@anza.xyz>"]
+repository = "https://github.com/mircea-c/svm"
+homepage = "https://anza.xyz/"
+license = "Apache-2.0"
+edition = "2021"
+
+[workspace.lints.rust]
+# List of rust-2024-compatibility lints that are already satisfied
+# See https://doc.rust-lang.org/rustc/lints/groups.html
+boxed_slice_into_iter = "deny"
+dependency_on_unit_never_type_fallback = "deny"
+deprecated_safe_2024 = "deny"
+impl_trait_overcaptures = "deny"
+missing_unsafe_on_extern = "deny"
+never_type_fallback_flowing_into_unsafe = "deny"
+rust_2024_guarded_string_incompatible_syntax = "deny"
+rust_2024_incompatible_pat = "deny"
+rust_2024_prelude_collisions = "deny"
+static_mut_refs = "deny"
+unsafe_attr_outside_unsafe = "deny"
+unsafe_op_in_unsafe_fn = "deny"
+
+[workspace.lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = [
+    'cfg(target_os, values("solana"))',
+    'cfg(feature, values("frozen-abi", "no-entrypoint"))',
+]
+
+# Clippy lint configuration that can not be applied in clippy.toml
+[workspace.lints.clippy]
+arithmetic_side_effects = "deny"
+default_trait_access = "deny"
+manual_let_else = "deny"
+used_underscore_binding = "deny"
+
+[workspace.dependencies]
+agave-feature-set = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+agave-logger = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+agave-reserved-account-keys = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+agave-syscalls = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+agave-validator = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+ahash = "0.8.12"
+anyhow = "1.0.100"
+arbitrary = "1.4.2"
+arc-swap = "1.8.0"
+array-bytes = "=1.4.1"
+arrayref = "0.3.9"
+assert_matches = "1.5.0"
+base64 = "0.22.1"
+bincode = "1.3.3"
+bitflags = "2.10.0"
+blake3 = "1.8.3"
+borsh = { version = "1.6.0", features = ["derive", "unstable__schema"] }
+bs58 = { version = "0.5.1", default-features = false }
+bytemuck = "1.24.0"
+bytemuck_derive = "1.10.2"
+cfg-if = "1.0.4"
+cfg_eval = "0.1.2"
+criterion = "0.8.1"
+curve25519-dalek = { version = "4.1.3", features = ["digest", "rand_core"] }
+dashmap = "5.5.3"
+derivation-path = { version = "0.2.0", default-features = false }
+derive-where = "1.6.0"
+digest = "0.10.7"
+eager = "0.1.0"
+ed25519-dalek = "=1.0.1"
+enum-iterator = "2.3.0"
+futures = "0.3.31"
+getrandom = "0.3.4"
+hex = "0.4.3"
+hmac = "0.12.1"
+itertools = "0.14.0"
+libc = "0.2.180"
+libsecp256k1 = { version = "0.6.0", default-features = false, features = [
+    "std",
+    "static-context",
+] }
+log = "0.4.29"
+memmap2 = "0.9.9"
+num-derive = "0.4"
+num-traits = "0.2"
+num_enum = "0.7.4"
+openssl = "0.10"
+percentage = "0.1.0"
+qualifier_attr = { version = "0.2.2", default-features = false }
+rand = "0.9.2"
+rand0-7 = { package = "rand", version = "0.7" }
+rand_chacha = "0.9.0"
+scopeguard = "1.2.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+serde_yaml = "0.9.34"
+sha2 = "0.10.9"
+sha3 = "0.10.8"
+shuttle = "0.7.1"
+solana-account = "3.3.0"
+solana-account-decoder = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-account-info = "3.1.0"
+solana-accounts-db = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-big-mod-exp = "3.0.0"
+solana-bincode = "3.1.0"
+solana-bn254 = "3.2.1"
+solana-borsh = "3.0.0"
+solana-bpf-loader-program = { path = "programs/bpf_loader", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
+solana-cli-output = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-clock = "3.0.0"
+solana-compute-budget = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-compute-budget-instruction = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-compute-budget-interface = "3.0.0"
+solana-compute-budget-program = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-curve25519 = "4.0.0"
+solana-define-syscall = "5.0.0"
+solana-ed25519-program = "3.0.0"
+solana-epoch-rewards = "3.0.0"
+solana-epoch-schedule = "3.0.0"
+solana-fee = "3.0.0"
+solana-fee-calculator = "3.0.0"
+solana-fee-structure = "3.0.0"
+solana-frozen-abi = "3.1.0"
+solana-frozen-abi-macro = "3.1.0"
+solana-hash = "3.1.0"
+solana-inflation = "3.0.0"
+solana-instruction = "3.1.0"
+solana-instruction-error = "2.1.0"
+solana-instructions-sysvar = "3.0.0"
+solana-keypair = "3.1.0"
+solana-last-restart-slot = "3.0.0"
+solana-ledger = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-loader-v3-interface = "6.1.0"
+solana-loader-v4-interface = "3.1.0"
+solana-loader-v4-program = { path = "programs/loader-v4", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
+solana-measure = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-message = "3.0.1"
+solana-native-token = "3.0.0"
+solana-nonce = "3.0.0"
+solana-nonce-account = "3.0.0"
+solana-packet = "4.0.0"
+solana-poseidon = "4.0.0"
+solana-precompile-error = "3.0.0"
+solana-program = { version = "3.0.0", default-features = false }
+solana-program-binaries = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-program-entrypoint = "3.1.1"
+solana-program-error = "3.0.0"
+solana-program-memory = "3.1.0"
+solana-program-option = "3.0.0"
+solana-program-pack = "3.0.0"
+solana-program-runtime = { path = "program-runtime", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
+solana-pubkey = "4.0.0"
+solana-rent = "3.0.0"
+solana-runtime = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-runtime-transaction = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-sanitize = "3.0.1"
+solana-sbpf = "0.14.0"
+solana-sdk-ids = "3.1.0"
+solana-secp256k1-program = "3.0.0"
+solana-secp256k1-recover = "3.0.0"
+solana-secp256r1-program = "3.0.0"
+solana-security-txt = "1.1.1"
+solana-serialize-utils = "3.1.0"
+solana-sha256-hasher = "3.0.0"
+solana-short-vec = "3.0.0"
+solana-signature = "3.0.0"
+solana-signer = "3.0.0"
+solana-slot-hashes = "3.0.0"
+solana-stable-layout = "3.0.0"
+solana-stake-interface = "2.0.2"
+solana-svm = { path = "svm", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
+solana-svm-callback = { path = "callback", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
+solana-svm-feature-set = { path = "feature-set", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
+solana-svm-log-collector = { path = "log-collector", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
+solana-svm-measure = { path = "measure", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
+solana-svm-timings = { path = "timings", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
+solana-svm-transaction = { path = "transaction", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
+solana-svm-type-overrides = { path = "type-overrides", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
+solana-system-interface = { version = "3.0.0", features = ["bincode"] }
+solana-system-program = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-system-transaction = "3.0.0"
+solana-sysvar = "3.1.1"
+solana-sysvar-id = "3.1.0"
+solana-transaction = "3.0.2"
+solana-transaction-context = { path = "transaction-context", version = "=4.0.0-alpha.0", features = ["agave-unstable-api", "bincode"] }
+solana-transaction-error = "3.0.0"
+solana-transaction-status = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-version = "3.1.0"
+solana-vote = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-vote-interface = "3.0.0"
+solana-vote-program = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", default-features = false, features = ["agave-unstable-api"] }
+solana-zk-elgamal-proof-program = "3.0.0"
+solana-zk-sdk = "5.0.0"
+solana-zk-token-proof-program = "3.0.0"
+spl-generic-token = "2.0.0"
+spl-token-interface = "2.0.0"
+static_assertions = "1.1.0"
+test-case = "3.3.1"
+thiserror = "2.0.18"
+tiny-bip39 = "2.0.0"
+
+[patch."https://github.com/anza-xyz/agave"]
+solana-svm-feature-set = { path = "feature-set" }
+solana-svm-log-collector = { path = "log-collector" }
+solana-svm-measure = { path = "measure" }
+solana-program-runtime = { path = "program-runtime" }
+solana-transaction-context = { path = "transaction-context" }
+solana-svm-type-overrides = { path = "type-overrides" }
