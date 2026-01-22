@@ -1,0 +1,48 @@
+name: Clippy
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - v[0-9]+.[0-9]+
+  pull_request:
+    branches:
+      - master
+      - main
+      - v[0-9]+.[0-9]+
+    paths:
+      - "**.rs"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - ".github/workflows/clippy.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  SHELL: /bin/bash
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
+
+jobs:
+  clippy-nightly:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mozilla-actions/sccache-action@v0.0.9
+        with:
+          version: "v0.10.0"
+
+      - name: Set rust version
+        run: |
+          source ci/rust-version.sh nightly
+          echo "RUST_NIGHTLY=$rust_nightly" >> $GITHUB_ENV
+
+      - name: Install clippy
+        run: rustup component add clippy --toolchain ${{ env.RUST_NIGHTLY }}
+
+      - name: Run clippy
+        run: scripts/cargo-clippy.sh

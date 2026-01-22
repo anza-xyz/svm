@@ -1,0 +1,64 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - v[0-9]+.[0-9]+
+  pull_request:
+    branches:
+      - master
+      - main
+      - v[0-9]+.[0-9]+
+    paths:
+      - "**.rs"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - ".github/workflows/lint.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set rust version
+        run: |
+          source ci/rust-version.sh nightly
+          echo "RUST_NIGHTLY=$rust_nightly" >> $GITHUB_ENV
+
+      - name: Install rustfmt
+        run: rustup component add rustfmt --toolchain ${{ env.RUST_NIGHTLY }}
+
+      - name: Install cargo-sort
+        run: cargo install cargo-sort
+
+      - name: git diff --check
+        run: |
+          git fetch origin ${{ github.base_ref || 'master' }} --depth=1
+          git diff origin/${{ github.base_ref || 'master' }} --check
+
+      - name: nits
+        run: ci/nits.sh
+
+      - name: cargo version check
+        run: scripts/increment-cargo-version.sh check
+
+      - name: Cargo.lock check
+        run: |
+          scripts/cargo-for-all-lock-files.sh tree >/dev/null
+          git diff --exit-code -- '**/Cargo.lock'
+
+      - name: fmt
+        run: cargo +${{ env.RUST_NIGHTLY }} fmt --all -- --check
+
+      - name: cargo sort
+        run: cargo +${{ env.RUST_NIGHTLY }} sort --workspace --check
+
+      - name: crate order
+        run: ci/order-crates-for-publishing.py
