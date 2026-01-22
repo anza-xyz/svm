@@ -2027,9 +2027,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.105"
+version = "1.0.106"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "535d180e0ecab6268a3e718bb9fd44db66bbbc256257165fc699dadf70d16fe7"
+checksum = "8fd00f0bb2e90d81d1044c2b32617f68fcb9fa3bb7640c23e9c748e53fb30934"
 dependencies = [
  "unicode-ident",
 ]
@@ -2641,7 +2641,6 @@ dependencies = [
  "agave-syscalls",
  "assert_matches",
  "bincode",
- "cfg-if",
  "criterion",
  "qualifier_attr",
  "rand 0.9.2",
@@ -3257,6 +3256,7 @@ dependencies = [
  "assert_matches",
  "base64 0.22.1",
  "bincode",
+ "cfg-if",
  "itertools 0.14.0",
  "log",
  "percentage",
