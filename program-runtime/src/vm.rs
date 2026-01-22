@@ -1,5 +1,7 @@
 //! SBF virtual machine provisioning and execution.
 
+#[cfg(feature = "svm-internal")]
+use qualifier_attr::qualifiers;
 use {
     crate::{
         execution_budget::MAX_INSTRUCTION_STACK_DEPTH,
