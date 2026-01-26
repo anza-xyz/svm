@@ -1,0 +1,58 @@
+name: Check
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "**.rs"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - ".github/workflows/check.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  SHELL: /bin/bash
+
+jobs:
+  check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mozilla-actions/sccache-action@v0.0.9
+        if: ${{ !env.ACT }}
+        with:
+          version: "v0.10.0"
+
+      - name: Enable sccache
+        if: ${{ !env.ACT }}
+        run: |
+          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Set rust version
+        run: |
+          source ci/rust-version.sh nightly
+          echo "RUST_NIGHTLY=$rust_nightly" >> $GITHUB_ENV
+
+      - name: dev-context-only-utils check
+        run: scripts/check-dev-context-only-utils.sh tree
+
+      - name: cargo check
+        run: |
+          cargo +${{ env.RUST_NIGHTLY }} check \
+            --workspace \
+            --all-targets \
+            --features dummy-for-ci-check,frozen-abi
