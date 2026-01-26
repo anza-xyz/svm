@@ -61,11 +61,11 @@ manual_let_else = "deny"
 used_underscore_binding = "deny"
 
 [workspace.dependencies]
-agave-feature-set = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
-agave-logger = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
-agave-reserved-account-keys = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
-agave-syscalls = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
-agave-validator = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+agave-feature-set = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
+agave-logger = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
+agave-reserved-account-keys = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
+agave-syscalls = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
+agave-validator = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
 ahash = "0.8.12"
 anyhow = "1.0.100"
 arbitrary = "1.4.2"
@@ -121,18 +121,18 @@ sha2 = "0.10.9"
 sha3 = "0.10.8"
 shuttle = "0.7.1"
 solana-account = "3.3.0"
-solana-account-decoder = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-account-decoder = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
 solana-account-info = "3.1.0"
-solana-accounts-db = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-accounts-db = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
 solana-big-mod-exp = "3.0.0"
 solana-bincode = "3.1.0"
 solana-bn254 = "3.2.1"
 solana-borsh = "3.0.0"
 solana-bpf-loader-program = { path = "programs/bpf_loader", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
-solana-cli-output = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-cli-output = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
 solana-clock = "3.0.0"
 solana-compute-budget = { path = "compute-budget", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
-solana-compute-budget-instruction = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-compute-budget-instruction = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
 solana-compute-budget-interface = "3.0.0"
 solana-compute-budget-program = { path = "compute-budget-program", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
 solana-curve25519 = "4.0.0"
@@ -152,11 +152,11 @@ solana-instruction-error = "2.1.0"
 solana-instructions-sysvar = "3.0.0"
 solana-keypair = "3.1.0"
 solana-last-restart-slot = "3.0.0"
-solana-ledger = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-ledger = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
 solana-loader-v3-interface = "6.1.0"
 solana-loader-v4-interface = "3.1.0"
 solana-loader-v4-program = { path = "programs/loader-v4", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
-solana-measure = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-measure = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
 solana-message = "3.0.1"
 solana-native-token = "3.0.0"
 solana-nonce = "3.0.0"
@@ -165,7 +165,7 @@ solana-packet = "4.0.0"
 solana-poseidon = "4.0.0"
 solana-precompile-error = "3.0.0"
 solana-program = { version = "3.0.0", default-features = false }
-solana-program-binaries = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-program-binaries = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
 solana-program-entrypoint = "3.1.1"
 solana-program-error = "3.0.0"
 solana-program-memory = "3.1.0"
@@ -174,10 +174,10 @@ solana-program-pack = "3.0.0"
 solana-program-runtime = { path = "program-runtime", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
 solana-pubkey = "4.0.0"
 solana-rent = "3.0.0"
-solana-runtime = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
-solana-runtime-transaction = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-runtime = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
+solana-runtime-transaction = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
 solana-sanitize = "3.0.1"
-solana-sbpf = "0.14.0"
+solana-sbpf = "0.14.1"
 solana-sdk-ids = "3.1.0"
 solana-secp256k1-program = "3.0.0"
 solana-secp256k1-recover = "3.0.0"
@@ -207,11 +207,11 @@ solana-sysvar-id = "3.1.0"
 solana-transaction = "3.0.2"
 solana-transaction-context = { path = "transaction-context", version = "=4.0.0-alpha.0", features = ["agave-unstable-api", "bincode"] }
 solana-transaction-error = "3.0.0"
-solana-transaction-status = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-transaction-status = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
 solana-version = "3.1.0"
-solana-vote = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", features = ["agave-unstable-api"] }
+solana-vote = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", features = ["agave-unstable-api"] }
 solana-vote-interface = "3.0.0"
-solana-vote-program = { git = "https://github.com/anza-xyz/agave", rev = "003f1e21a5", default-features = false, features = ["agave-unstable-api"] }
+solana-vote-program = { git = "https://github.com/anza-xyz/agave", rev = "c87acec4bb", default-features = false, features = ["agave-unstable-api"] }
 solana-zk-elgamal-proof-program = "3.0.0"
 solana-zk-sdk = "5.0.0"
 solana-zk-token-proof-program = "3.0.0"
