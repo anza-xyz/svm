@@ -16,6 +16,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "agave-feature-set"
+version = "4.0.0-alpha.0"
+source = "git+https://github.com/anza-xyz/agave?rev=c87acec4bb#c87acec4bbd41b7f37ce0857c345e923f5a0d514"
+dependencies = [
+ "ahash",
+ "solana-epoch-schedule",
+ "solana-hash 3.1.0",
+ "solana-pubkey 4.0.0",
+ "solana-sha256-hasher",
+ "solana-svm-feature-set",
+]
+
+[[package]]
 name = "agave-logger"
 version = "4.0.0-alpha.0"
 source = "git+https://github.com/anza-xyz/agave?rev=c87acec4bb#c87acec4bbd41b7f37ce0857c345e923f5a0d514"
@@ -2776,9 +2789,10 @@ dependencies = [
 [[package]]
 name = "solana-compute-budget"
 version = "4.0.0-alpha.0"
-source = "git+https://github.com/anza-xyz/agave?rev=c87acec4bb#c87acec4bbd41b7f37ce0857c345e923f5a0d514"
 dependencies = [
+ "qualifier_attr",
  "solana-fee-structure",
+ "solana-frozen-abi",
  "solana-program-runtime",
 ]
 
@@ -2795,7 +2809,6 @@ dependencies = [
 [[package]]
 name = "solana-compute-budget-program"
 version = "4.0.0-alpha.0"
-source = "git+https://github.com/anza-xyz/agave?rev=c87acec4bb#c87acec4bbd41b7f37ce0857c345e923f5a0d514"
 dependencies = [
  "solana-program-runtime",
 ]
@@ -2932,6 +2945,9 @@ name = "solana-fee-structure"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e2abdb1223eea8ec64136f39cb1ffcf257e00f915c957c35c0dd9e3f4e700b0"
+dependencies = [
+ "solana-frozen-abi",
+]
 
 [[package]]
 name = "solana-frozen-abi"
@@ -3827,24 +3843,33 @@ dependencies = [
 [[package]]
 name = "solana-system-program"
 version = "4.0.0-alpha.0"
-source = "git+https://github.com/anza-xyz/agave?rev=c87acec4bb#c87acec4bbd41b7f37ce0857c345e923f5a0d514"
 dependencies = [
+ "agave-feature-set",
+ "assert_matches",
  "bincode",
+ "criterion",
  "log",
  "serde",
  "solana-account",
  "solana-bincode",
+ "solana-compute-budget",
  "solana-fee-calculator",
+ "solana-hash 3.1.0",
  "solana-instruction",
  "solana-nonce",
  "solana-nonce-account",
  "solana-packet",
  "solana-program-runtime",
  "solana-pubkey 4.0.0",
+ "solana-rent",
  "solana-sdk-ids",
+ "solana-sha256-hasher",
+ "solana-svm-callback 4.0.0-alpha.0",
+ "solana-svm-feature-set",
  "solana-svm-log-collector",
  "solana-svm-type-overrides",
  "solana-system-interface 3.0.0",
+ "solana-system-program",
  "solana-sysvar",
  "solana-transaction-context",
 ]
