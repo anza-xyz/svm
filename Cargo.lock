@@ -5,7 +5,7 @@ version = 4
 [[package]]
 name = "agave-bls12-381"
 version = "4.0.0-alpha.0"
-source = "git+https://github.com/anza-xyz/agave?rev=c87acec4bb#c87acec4bbd41b7f37ce0857c345e923f5a0d514"
+source = "git+https://github.com/anza-xyz/agave?rev=3432d0bed2#3432d0bed25b4458ffb89b130a959333d43cf3a8"
 dependencies = [
  "blst",
  "blstrs",
@@ -18,7 +18,7 @@ dependencies = [
 [[package]]
 name = "agave-syscalls"
 version = "4.0.0-alpha.0"
-source = "git+https://github.com/anza-xyz/agave?rev=c87acec4bb#c87acec4bbd41b7f37ce0857c345e923f5a0d514"
+source = "git+https://github.com/anza-xyz/agave?rev=3432d0bed2#3432d0bed25b4458ffb89b130a959333d43cf3a8"
 dependencies = [
  "agave-bls12-381",
  "bincode",
@@ -46,11 +46,11 @@ dependencies = [
  "solana-sha256-hasher",
  "solana-stable-layout",
  "solana-stake-interface",
- "solana-svm-callback 4.0.0-alpha.0 (git+https://github.com/anza-xyz/agave?rev=c87acec4bb)",
+ "solana-svm-callback 4.0.0-alpha.0 (git+https://github.com/anza-xyz/agave?rev=3432d0bed2)",
  "solana-svm-feature-set",
  "solana-svm-log-collector",
  "solana-svm-measure",
- "solana-svm-timings 4.0.0-alpha.0 (git+https://github.com/anza-xyz/agave?rev=c87acec4bb)",
+ "solana-svm-timings 4.0.0-alpha.0 (git+https://github.com/anza-xyz/agave?rev=3432d0bed2)",
  "solana-svm-type-overrides",
  "solana-sysvar",
  "solana-sysvar-id",
@@ -3238,7 +3238,7 @@ dependencies = [
 [[package]]
 name = "solana-program-binaries"
 version = "4.0.0-alpha.0"
-source = "git+https://github.com/anza-xyz/agave?rev=c87acec4bb#c87acec4bbd41b7f37ce0857c345e923f5a0d514"
+source = "git+https://github.com/anza-xyz/agave?rev=3432d0bed2#3432d0bed25b4458ffb89b130a959333d43cf3a8"
 dependencies = [
  "bincode",
  "serde",
@@ -3390,9 +3390,9 @@ checksum = "dcf09694a0fc14e5ffb18f9b7b7c0f15ecb6eac5b5610bf76a1853459d19daf9"
 
 [[package]]
 name = "solana-sbpf"
-version = "0.14.1"
+version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "faf12cb3e7a3848f82ce69dd53ba543dd5c9231080b764dfd08a84d2618a79a1"
+checksum = "9a642316efc0f73abc02da804f391f98aefecfa885a1472e31e4eeed93d8d3f8"
 dependencies = [
  "byteorder",
  "combine",
@@ -3689,7 +3689,7 @@ dependencies = [
 [[package]]
 name = "solana-svm-callback"
 version = "4.0.0-alpha.0"
-source = "git+https://github.com/anza-xyz/agave?rev=c87acec4bb#c87acec4bbd41b7f37ce0857c345e923f5a0d514"
+source = "git+https://github.com/anza-xyz/agave?rev=3432d0bed2#3432d0bed25b4458ffb89b130a959333d43cf3a8"
 dependencies = [
  "solana-account",
  "solana-clock",
@@ -3724,7 +3724,7 @@ dependencies = [
 [[package]]
 name = "solana-svm-timings"
 version = "4.0.0-alpha.0"
-source = "git+https://github.com/anza-xyz/agave?rev=c87acec4bb#c87acec4bbd41b7f37ce0857c345e923f5a0d514"
+source = "git+https://github.com/anza-xyz/agave?rev=3432d0bed2#3432d0bed25b4458ffb89b130a959333d43cf3a8"
 dependencies = [
  "eager",
  "enum-iterator",
