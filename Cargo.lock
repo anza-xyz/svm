@@ -16,30 +16,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "agave-feature-set"
-version = "4.0.0-alpha.0"
-source = "git+https://github.com/anza-xyz/agave?rev=c87acec4bb#c87acec4bbd41b7f37ce0857c345e923f5a0d514"
-dependencies = [
- "ahash",
- "solana-epoch-schedule",
- "solana-hash 3.1.0",
- "solana-pubkey 4.0.0",
- "solana-sha256-hasher",
- "solana-svm-feature-set",
-]
-
-[[package]]
-name = "agave-logger"
-version = "4.0.0-alpha.0"
-source = "git+https://github.com/anza-xyz/agave?rev=c87acec4bb#c87acec4bbd41b7f37ce0857c345e923f5a0d514"
-dependencies = [
- "env_logger",
- "libc",
- "log",
- "signal-hook",
-]
-
-[[package]]
 name = "agave-syscalls"
 version = "4.0.0-alpha.0"
 source = "git+https://github.com/anza-xyz/agave?rev=c87acec4bb#c87acec4bbd41b7f37ce0857c345e923f5a0d514"
@@ -1150,16 +1126,6 @@ name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
-
-[[package]]
-name = "errno"
-version = "0.3.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
-dependencies = [
- "libc",
- "windows-sys",
-]
 
 [[package]]
 name = "feature-probe"
@@ -2543,26 +2509,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "signal-hook"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b57709da74f9ff9f4a27dce9526eec25ca8407c45a7887243b031a58935fb8e"
-dependencies = [
- "libc",
- "signal-hook-registry",
-]
-
-[[package]]
-name = "signal-hook-registry"
-version = "1.4.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4db69cba1110affc0e9f7bcd48bbf87b3f4fc7c61fc9155afd4c469eb3d6c1b"
-dependencies = [
- "errno",
- "libc",
-]
-
-[[package]]
 name = "signature"
 version = "1.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3658,12 +3604,12 @@ dependencies = [
 name = "solana-svm"
 version = "4.0.0-alpha.0"
 dependencies = [
- "agave-logger",
  "agave-syscalls",
  "ahash",
  "assert_matches",
  "bincode",
  "ed25519-dalek 1.0.1",
+ "env_logger",
  "libsecp256k1",
  "log",
  "openssl",
