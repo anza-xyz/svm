@@ -20,6 +20,9 @@ struct Xtask {
 enum Commands {
     #[command(about = "Publish crates")]
     Publish(commands::publish::CommandArgs),
+
+    #[command(about = "Generate Buildkite pipeline")]
+    GeneratePipeline(commands::generate_pipeline::CommandArgs),
 }
 
 #[derive(Args, Debug)]
@@ -52,6 +55,9 @@ async fn try_main() -> Result<()> {
     match xtask.command {
         Commands::Publish(args) => {
             commands::publish::run(args)?;
+        }
+        Commands::GeneratePipeline(args) => {
+            commands::generate_pipeline::run(args).await?;
         }
     }
 
