@@ -7,6 +7,10 @@ publish = false
 # Prevents auto-detection of parent workspace
 [workspace]
 
+[features]
+dummy-for-ci-check = []
+frozen-abi = []
+
 [dependencies]
 anyhow = "1.0"
 cargo_metadata = "0.23"
