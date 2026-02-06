@@ -1,7 +1,8 @@
 target/
 
 **/*.rs.bk
-.cargo
+.cargo/*
+!.cargo/config.toml
 
 /config/
 
