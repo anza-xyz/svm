@@ -1149,15 +1149,13 @@ fn common_close_account(
 
 #[cfg_attr(feature = "svm-internal", qualifiers(pub))]
 mod test_utils {
+    #[cfg(all(feature = "svm-internal", feature = "metrics"))]
+    use solana_program_runtime::loaded_programs::LoadProgramMetrics;
     #[cfg(feature = "svm-internal")]
     use {
-        super::*,
-        agave_syscalls::create_program_runtime_environment_v1,
-        solana_account::ReadableAccount,
-        solana_loader_v4_interface::state::LoaderV4State,
-        solana_program_runtime::{
-            deploy::load_program_from_bytes, loaded_programs::LoadProgramMetrics,
-        },
+        super::*, agave_syscalls::create_program_runtime_environment_v1,
+        solana_account::ReadableAccount, solana_loader_v4_interface::state::LoaderV4State,
+        solana_program_runtime::loaded_programs::DELAY_VISIBILITY_SLOT_OFFSET,
         solana_sdk_ids::loader_v4,
     };
 
@@ -1172,7 +1170,6 @@ mod test_utils {
     #[cfg(feature = "svm-internal")]
     #[cfg_attr(feature = "svm-internal", qualifiers(pub))]
     fn load_all_invoked_programs(invoke_context: &mut InvokeContext) {
-        let mut load_program_metrics = LoadProgramMetrics::default();
         let program_runtime_environment = create_program_runtime_environment_v1(
             invoke_context.get_feature_set(),
             invoke_context.get_compute_budget(),
@@ -1200,19 +1197,24 @@ mod test_utils {
                     .get_key_of_account_at_index(index)
                     .expect("Failed to get account key");
 
-                if let Ok(loaded_program) = load_program_from_bytes(
-                    None,
-                    &mut load_program_metrics,
-                    account
-                        .data()
-                        .get(programdata_data_offset.min(account.data().len())..)
-                        .unwrap(),
+                let programdata = account
+                    .data()
+                    .get(programdata_data_offset.min(account.data().len())..)
+                    .unwrap();
+                let program_runtime_environment = program_runtime_environment.clone();
+                let effective_slot = DELAY_VISIBILITY_SLOT_OFFSET;
+                let loaded_program = ProgramCacheEntry::new(
                     owner,
-                    account.data().len(),
+                    program_runtime_environment,
                     0,
-                    program_runtime_environment.clone(),
-                    false,
-                ) {
+                    effective_slot,
+                    programdata,
+                    account.data().len(),
+                    #[cfg(feature = "metrics")]
+                    &mut LoadProgramMetrics::default(),
+                )
+                .map_err(|_| InstructionError::InvalidAccountData);
+                if let Ok(loaded_program) = loaded_program {
                     invoke_context
                         .program_cache_for_tx_batch
                         .store_modified_entry(*pubkey, Arc::new(loaded_program));
