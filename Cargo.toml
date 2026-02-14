@@ -167,7 +167,7 @@ solana-last-restart-slot = "3.0.0"
 solana-ledger = { git = "https://github.com/anza-xyz/agave", rev = "a48940a24d", features = ["agave-unstable-api"] }
 solana-loader-v3-interface = "6.1.0"
 solana-loader-v4-interface = "3.1.0"
-solana-loader-v4-program = { path = "programs/loader-v4", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
+solana-loader-v4-program = { path = "programs/loader-v4", version = "=4.0.0-alpha.0", default-features = false, features = ["agave-unstable-api"] }
 solana-measure = { git = "https://github.com/anza-xyz/agave", rev = "a48940a24d", features = ["agave-unstable-api"] }
 solana-message = "3.0.1"
 solana-native-token = "3.0.0"
