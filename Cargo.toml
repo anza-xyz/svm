@@ -5,6 +5,7 @@ members = [
     "feature-set",
     "log-collector",
     "measure",
+    "program-binaries",
     "program-runtime",
     "programs/bpf_loader",
     "programs/compute-budget",
@@ -175,7 +176,7 @@ solana-packet = "4.0.0"
 solana-poseidon = "4.0.0"
 solana-precompile-error = "3.0.0"
 solana-program = { version = "3.0.0", default-features = false }
-solana-program-binaries = { git = "https://github.com/anza-xyz/agave", rev = "a48940a24d", features = ["agave-unstable-api"] }
+solana-program-binaries = { path = "program-binaries", version = "=4.0.0-alpha.0", features = ["agave-unstable-api"] }
 solana-program-entrypoint = "3.1.1"
 solana-program-error = "3.0.0"
 solana-program-memory = "3.1.0"
@@ -236,6 +237,7 @@ thiserror = "2.0.18"
 tiny-bip39 = "2.0.0"
 
 [patch."https://github.com/anza-xyz/agave"]
+solana-program-binaries = { path = "program-binaries" }
 solana-svm-feature-set = { path = "feature-set" }
 solana-svm-log-collector = { path = "log-collector" }
 solana-svm-measure = { path = "measure" }
