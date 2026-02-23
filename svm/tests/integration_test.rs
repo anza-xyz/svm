@@ -2127,6 +2127,7 @@ fn simd83_fee_payer_deallocate() -> Vec<SvmTestEntry> {
     test_entry.add_initial_program(program_name);
 
     // rent minimum needs to be adjusted so fee payer can be deallocated
+    #[allow(deprecated)]
     let rent = Rent {
         lamports_per_byte_year: LAMPORTS_PER_SIGNATURE / solana_rent::ACCOUNT_STORAGE_OVERHEAD,
         exemption_threshold: 1.0,

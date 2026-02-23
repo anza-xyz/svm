@@ -1204,6 +1204,7 @@ mod tests {
 
     #[test]
     fn test_validate_fee_payer() {
+        #[allow(deprecated)]
         let rent = Rent {
             lamports_per_byte_year: 1,
             ..Rent::default()
@@ -1280,6 +1281,7 @@ mod tests {
 
     #[test]
     fn test_validate_nonce_fee_payer_with_checked_arithmetic() {
+        #[allow(deprecated)]
         let rent = Rent {
             lamports_per_byte_year: 1,
             ..Rent::default()

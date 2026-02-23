@@ -277,6 +277,7 @@ mod test {
 
     macro_rules! prepare_mockup {
         ($invoke_context:ident, $instruction_accounts:ident, $rent:ident, $transaction_context:ident) => {
+            #[allow(deprecated)]
             let $rent = Rent {
                 lamports_per_byte_year: 42,
                 ..Rent::default()
