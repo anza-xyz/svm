@@ -1,0 +1,23 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Prevents auto-detection of parent workspace
+[workspace]
+
+[features]
+dummy-for-ci-check = []
+frozen-abi = []
+
+[dependencies]
+anza-xtask = { package = "xtask", git = "https://github.com/anza-xyz/xtask", rev = "e8f5590e28b69132df690b6380003b32d0241a8c" }
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+env_logger = "0.11"
+log = "0.4"
+
+[dev-dependencies]
+pretty_assertions = "1.4"
+tempfile = "3.23"
