@@ -3813,7 +3813,6 @@ dependencies = [
 [[package]]
 name = "solana-program-binaries"
 version = "4.0.0-alpha.0"
-source = "git+https://github.com/anza-xyz/agave?rev=a48940a24d#a48940a24d513041beb6fa09225d3843b459b4e7"
 dependencies = [
  "bincode",
  "serde",
