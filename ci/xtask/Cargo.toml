@@ -7,9 +7,6 @@ publish = false
 # Prevents auto-detection of parent workspace
 [workspace]
 
-[features]
-dummy-for-ci-check = []
-frozen-abi = []
 
 [dependencies]
 anza-xtask = { package = "xtask", git = "https://github.com/anza-xyz/xtask", rev = "d189441c1bc86aa1741e1a079572fea00ea9b007" }
