@@ -60,4 +60,3 @@ L2: (1 package(s))
 - **Circular Dependency Detection**: Validates no circular dependencies exist
 - **Publish Filter**: Automatically excludes crates with `publish = false`
 - **Multiple Output Formats**: JSON for automation, tree for visualization
-
