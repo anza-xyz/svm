@@ -61,10 +61,3 @@ L2: (1 package(s))
 - **Publish Filter**: Automatically excludes crates with `publish = false`
 - **Multiple Output Formats**: JSON for automation, tree for visualization
 
-## Testing
-
-Run the test suite:
-
-```bash
-cargo test --manifest-path ci/xtask/Cargo.toml
-```
