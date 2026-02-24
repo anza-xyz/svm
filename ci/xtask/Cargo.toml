@@ -7,11 +7,9 @@ publish = false
 # Prevents auto-detection of parent workspace
 [workspace]
 
-
 [dependencies]
 anza-xtask = { package = "xtask", git = "https://github.com/anza-xyz/xtask", rev = "d189441c1bc86aa1741e1a079572fea00ea9b007" }
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
 env_logger = "0.11"
 log = "0.4"
-
