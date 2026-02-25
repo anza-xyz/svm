@@ -40,7 +40,7 @@ else
 fi
 
 for lock_file in $files; do
-  if [[ $lock_file = *ci/xtask/tests/dummy-workspace* ]]; then
+  if [[ $lock_file = *ci/xtask* ]]; then
     continue
   fi
   if [[ $lock_file = *programs/sbf* ]]; then
