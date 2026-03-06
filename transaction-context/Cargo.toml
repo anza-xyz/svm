@@ -39,10 +39,7 @@ solana-signature = { workspace = true, optional = true }
 solana-account-info = { workspace = true }
 solana-program-entrypoint = { workspace = true }
 solana-system-interface = { workspace = true }
-solana-transaction-context = { path = ".", features = [
-    "agave-unstable-api",
-    "dev-context-only-utils",
-] }
+solana-transaction-context = { path = ".", features = ["agave-unstable-api", "dev-context-only-utils"] }
 static_assertions = { workspace = true }
 
 [lints]
