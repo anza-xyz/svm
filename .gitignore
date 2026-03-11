@@ -1,0 +1,14 @@
+target/
+
+**/*.rs.bk
+.cargo/*
+!.cargo/config.toml
+
+/config/
+
+.cache
+
+# IDE files
+.idea/
+/solana.iml
+/.vscode/
