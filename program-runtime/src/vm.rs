@@ -209,14 +209,13 @@ pub fn execute<'a, 'b: 'a>(
 
     let mut create_vm_time = Measure::start("create_vm");
     let execution_result = {
-        #[cfg_attr(feature = "sbpf-debugger", expect(unused_assignments))]
         let mut execution_mode = ExecutionMode::PreferJit;
         #[cfg(feature = "sbpf-debugger")]
-        let (debug_port, debug_metadata) = {
+        let (debug_port, debug_metadata) = if invoke_context.debug_port.is_some() {
             execution_mode = ExecutionMode::Interpreted;
             (
                 invoke_context.debug_port,
-                format!(
+                Some(format!(
                     "program_id={};cpi_level={};caller={}",
                     program_id,
                     instruction_context.get_stack_height().saturating_sub(1),
@@ -231,8 +230,10 @@ pub fn execute<'a, 'b: 'a>(
                         .and_then(|ctx| ctx.get_program_key().ok())
                         .map(|key| key.to_string())
                         .unwrap_or_else(|| "none".into())
-                ),
+                )),
             )
+        } else {
+            (None, None)
         };
 
         let compute_meter_prev = invoke_context.get_remaining();
@@ -248,7 +249,7 @@ pub fn execute<'a, 'b: 'a>(
         #[cfg(feature = "sbpf-debugger")]
         {
             vm.debug_port = debug_port;
-            vm.debug_metadata = Some(debug_metadata);
+            vm.debug_metadata = debug_metadata;
         }
 
         let execute_time = Measure::start("execute");
