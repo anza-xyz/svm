@@ -8316,6 +8316,7 @@ dependencies = [
 name = "solana-runtime-transaction"
 version = "4.1.0-alpha.0"
 dependencies = [
+ "agave-feature-set",
  "agave-transaction-view",
  "solana-compute-budget-instruction",
  "solana-hash 4.2.0",
