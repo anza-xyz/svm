@@ -1,39 +1,74 @@
 #!/usr/bin/env bash
 #
-# update-rev-pins.sh — Update all Agave rev pins in the workspace Cargo.toml.
+# update-rev-pins.sh — Update upstream rev pins in the workspace Cargo.toml.
+#
+# The SVM workspace pins two upstreams via git deps:
+#   * agave — packages prefixed `agave-` or `solana-` (excluding solana-sbpf)
+#   * sbpf  — the `solana-sbpf` package
 #
 # Usage:
-#   sync/update-rev-pins.sh <new-rev>
-#
-# Replaces every `rev = "..."` value in the workspace Cargo.toml with the
-# provided ref.
+#   sync/update-rev-pins.sh agave <new-rev>
+#   sync/update-rev-pins.sh sbpf  <new-rev>
 #
 # Useful during rebase of the `svm` branch after syncing `master`.
 
 set -euo pipefail
 
-if [[ $# -ne 1 ]] || [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
-    echo "Usage: sync/update-rev-pins.sh <new-rev>"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/utils.sh"
+
+if [[ $# -ne 2 ]] || [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
+    echo "Usage: sync/update-rev-pins.sh <upstream> <new-rev>"
+    echo "  upstream: agave | sbpf"
     exit 2
 fi
 
-NEW_REV="$1"
+UPSTREAM_NAME="$1"
+NEW_REV="$2"
 MANIFEST="Cargo.toml"
 
-[[ -f "$MANIFEST" ]] || { echo "ERROR: $MANIFEST not found" >&2; exit 2; }
+[[ -f "$MANIFEST" ]] || die "$MANIFEST not found"
 
-OLD_REV=$(grep -m1 'rev = "' "$MANIFEST" | sed 's/.*rev = "\([^"]*\)".*/\1/')
-if [[ -z "$OLD_REV" ]]; then
-    echo "ERROR: no rev pins found in $MANIFEST" >&2
-    exit 2
-fi
+# Define which package-name prefixes belong to each upstream.
+# The regex is applied to the start of each line in Cargo.toml.
+case "$UPSTREAM_NAME" in
+    agave) PREFIX_REGEX='^[[:space:]]*(agave-|solana-(?!sbpf[[:space:]]*=))' ;;
+    sbpf)  PREFIX_REGEX='^[[:space:]]*solana-sbpf[[:space:]]*=' ;;
+    *)     die "Unknown upstream: $UPSTREAM_NAME (expected: agave | sbpf)" ;;
+esac
 
-if [[ "$OLD_REV" == "$NEW_REV" ]]; then
-    echo "Already at $NEW_REV — nothing to do."
+REV_REGEX='rev[[:space:]]*=[[:space:]]*"[^"]+"'
+
+count=0
+unchanged=0
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
+
+while IFS= read -r line || [[ -n "$line" ]]; do
+    if printf '%s' "$line" | grep -qP "$PREFIX_REGEX" \
+        && printf '%s' "$line" | grep -qP "$REV_REGEX"; then
+        new_line=$(printf '%s' "$line" \
+            | sed -E "s/(rev[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\1\"$NEW_REV\"/")
+        if [[ "$new_line" != "$line" ]]; then
+            count=$((count + 1))
+            line="$new_line"
+        else
+            unchanged=$((unchanged + 1))
+        fi
+    fi
+    printf '%s\n' "$line" >> "$tmp"
+done < "$MANIFEST"
+
+mv "$tmp" "$MANIFEST"
+trap - EXIT
+
+if [[ $count -eq 0 ]]; then
+    if [[ $unchanged -gt 0 ]]; then
+        echo "Already at $NEW_REV — $unchanged $UPSTREAM_NAME pin(s) unchanged."
+    else
+        echo "WARNING: no $UPSTREAM_NAME rev pins found in $MANIFEST" >&2
+    fi
     exit 0
 fi
 
-count=$(grep -c "rev = \"$OLD_REV\"" "$MANIFEST")
-sed -i "s/rev = \"$OLD_REV\"/rev = \"$NEW_REV\"/g" "$MANIFEST"
-
-echo "Updated $count rev pins: $OLD_REV → $NEW_REV"
+echo "Updated $count $UPSTREAM_NAME rev pin(s) to $NEW_REV"

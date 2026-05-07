@@ -1,9 +1,15 @@
-# SVM ↔ Agave Sync Workflow
+# SVM ↔ Upstream Sync Workflow
 
 ## Branch Structure
 
-🟢 **`master`** — Agave commits only, in chronological order. Filtered to
-SVM-owned crate paths, imported with original commit metadata intact.
+🟢 **`master`** — Imported upstream commits only, in chronological order.
+Sourced from two upstreams:
+
+- `anza-xyz/agave` — filtered to SVM-owned crate paths, with path renames
+  applied (e.g. `svm-callback/` in agave becomes `callback/` in SVM).
+- `anza-xyz/sbpf` — imported as a subtree merge into `sbpf/`.
+
+Each commit preserves original commit metadata.
 
 🟣 **`svm`** — based on `master`, routinely rebased. Contains workspace setup
 and infrastructure.
@@ -25,50 +31,68 @@ The anchor commit adds the workspace scaffolding:
 | `clippy.toml` | Clippy config |
 | `rustfmt.toml` | Formatting config |
 
-The `rev` pins point to the Agave commit that corresponds to the HEAD of
-`master` (found by matching the commit subject against the Agave repo).
-
 Sync tooling is placed before the anchor so that `sync/update-rev-pins.sh`
 is available when editing the anchor during a rebase.
 
-## Syncing Commits from Agave
+### `rev` pins
+
+The workspace `Cargo.toml` carries two distinct rev pin sets, one per
+upstream:
+
+- **Agave-prefixed packages** (`agave-*`, `solana-*` excluding `solana-sbpf`)
+  pin to a commit in `anza-xyz/agave`.
+- **`solana-sbpf`** pins to a commit in `anza-xyz/sbpf`.
+
+The two sets advance independently — sync PRs target one upstream at a time,
+so a rebase typically bumps one set and leaves the other alone.
+
+## Syncing Commits from an Upstream
 
 ### 🟢 **Step 1:** Open a "sync" PR to `master`.
 
-The **devops import script** is used to add new commits starting from a base
-ref.
+Sync PRs target one upstream at a time. The **devops import script** is used
+to add new commits starting from a base ref.
 
-> **Import script**: Devops-maintained script that imports Agave commits into
-> the SVM repo, filters commits to SVM-owned paths, applies path renaming, and
-> preserves original commit metadata.
+> **Import script**: Devops-maintained script that imports upstream commits
+> into the SVM repo, filters commits to SVM-owned paths, applies path
+> renaming (agave only), and preserves original commit metadata. Takes an
+> upstream selector.
 
-PR is opened on SVM `master`, reviewers verify with:
+PR is opened on SVM `master`, reviewers verify with the matching
+`--upstream` filter:
 
 ```bash
-sync/verify-tree.sh
+sync/verify-tree.sh --upstream agave   # for Agave sync PRs
+sync/verify-tree.sh --upstream sbpf    # for sbpf sync PRs
 ```
 
 Merge the new commits to `master`.
 
 ### 🟣 **Step 2:** Rebase the `svm` branch.
 
-Rebase the `svm` branch onto the latest `master`, which includes the new Agave
-commits.
+Rebase the `svm` branch onto the latest `master`. Edit the anchor commit to
+update `rev` pins for whichever upstream(s) advanced, then regenerate
+`Cargo.lock`.
 
-Edit the anchor commit to update `rev` pins to the corresponding Agave
-commit, then regenerate `Cargo.lock`:
 
 ```bash
-# Find the Agave commit that corresponds to the SVM master HEAD.
-# The SVM and Agave commit hashes differ (filtered tree), so match by subject.
+# Find the most recent Agave import commit on master and resolve its
+# upstream SHA.
+AGAVE_REV_COMMIT=$(git log master --format="%H" --grep="<agave-marker>" -1)
 AGAVE_REV=$(git -C ~/work/agave log --format="%H" --all \
-    --grep="$(git log -1 --format='%s' master)" -1)
+    --grep="$(git log -1 --format='%s' "$AGAVE_REV_COMMIT")" -1)
+sync/update-rev-pins.sh agave "$AGAVE_REV"
 
-sync/update-rev-pins.sh "$AGAVE_REV"
+# Same for sbpf.
+SBPF_REV_COMMIT=$(git log master --format="%H" --grep="<sbpf-marker>" -1)
+SBPF_REV=$(git -C ~/work/sbpf log --format="%H" --all \
+    --grep="$(git log -1 --format='%s' "$SBPF_REV_COMMIT")" -1)
+sync/update-rev-pins.sh sbpf "$SBPF_REV"
+
 cargo generate-lockfile
 ```
 
-See [REBASE.md](../REBASE.md) for detailed step-by-step instructions.
+If only one upstream advanced, you only need to bump that one's pin.
 
 Then continue the rebase and resolve any conflicts manually.
 
