@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 #
-# verify-commits.sh — Verify SVM has all relevant Agave commits.
+# verify-commits.sh — Verify SVM has all relevant upstream commits.
 #
-# Given two SVM refs (base and head), this script extracts the Agave rev pins
-# from each, then lists all Agave commits in that pin range that touch SVM-
-# owned paths. Each commit is classified — by matching commit subjects — as
-# cherry-picked, skippable (dep bumps, cargo-only), or unaccounted.
+# Given two SVM refs (base and head), this script extracts the upstream rev
+# pins from each, then for every upstream lists all commits in that pin range
+# that touch SVM-owned paths. Each commit is classified — by matching commit
+# subjects — as cherry-picked, skippable (dep bumps, cargo-only), or
+# unaccounted.
 #
-# The two key ranges:
-#   Agave:  BASE_PIN..AGAVE_REF  (derived from SVM `rev` pins)
-#   SVM:    BASE_REF..HEAD_REF  (the SVM branch being audited)
+# The audit runs once per upstream (agave, sbpf), unless --upstream filters
+# to one. SVM-only maintenance commits are reported once, at the end.
 #
 # Usage:
 #   verify-commits.sh [OPTIONS]
@@ -18,9 +18,13 @@
 #   --agave-repo PATH   Path to local Agave checkout (default: ~/work/agave).
 #   --agave-ref REF     Agave ref for end of range. Overrides the rev pin
 #                        extracted from Cargo.toml at HEAD_REF.
-#   --base-ref REF      SVM ref whose rev pin gives the start of the Agave
+#   --sbpf-repo PATH    Path to local sbpf checkout (default: ~/work/sbpf).
+#   --sbpf-ref REF      sbpf ref for end of range. Overrides the rev pin
+#                        extracted from Cargo.toml at HEAD_REF.
+#   --upstream NAME     Only audit one upstream: agave | sbpf
+#   --base-ref REF      SVM ref whose rev pins give the start of each upstream
 #                        range (default: merge-base of HEAD and master).
-#   --head-ref REF      SVM ref whose rev pin gives the end of the Agave
+#   --head-ref REF      SVM ref whose rev pins give the end of each upstream
 #                        range (default: HEAD).
 #   --diff              Show files touched by unaccounted commits.
 #   --help              Show this help.
@@ -37,9 +41,17 @@ source "$SCRIPT_DIR/utils.sh"
 
 AGAVE_REPO="${AGAVE_REPO:-$HOME/work/agave}"
 AGAVE_REF=""
+SBPF_REPO="${SBPF_REPO:-$HOME/work/sbpf}"
+SBPF_REF=""
+UPSTREAM_FILTER=""
 BASE_REF=""
 HEAD_REF="HEAD"
 SHOW_DIFF=false
+
+# Track which per-upstream flags were explicitly passed, so we can reject
+# combinations like `--upstream agave --sbpf-ref X` (silently ignoring a
+# user-supplied flag is a footgun).
+declare -A FLAG_SET=()
 
 usage() {
     sed -n '/^# Usage:/,/^[^#]/{/^[^#]/q; s/^# \?//p;}' "$0"
@@ -48,8 +60,11 @@ usage() {
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --agave-repo)   AGAVE_REPO="$2"; shift 2 ;;
-        --agave-ref)    AGAVE_REF="$2";  shift 2 ;;
+        --agave-repo)   AGAVE_REPO="$2"; FLAG_SET[--agave-repo]=1; shift 2 ;;
+        --agave-ref)    AGAVE_REF="$2";  FLAG_SET[--agave-ref]=1;  shift 2 ;;
+        --sbpf-repo)    SBPF_REPO="$2";  FLAG_SET[--sbpf-repo]=1;  shift 2 ;;
+        --sbpf-ref)     SBPF_REF="$2";   FLAG_SET[--sbpf-ref]=1;   shift 2 ;;
+        --upstream)     UPSTREAM_FILTER="$2"; shift 2 ;;
         --base-ref)     BASE_REF="$2";   shift 2 ;;
         --head-ref)     HEAD_REF="$2";   shift 2 ;;
         --diff)         SHOW_DIFF=true;  shift ;;
@@ -58,130 +73,211 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-[[ -d "$AGAVE_REPO/.git" ]] || die "Agave repo not found at $AGAVE_REPO"
-git rev-parse --git-dir >/dev/null 2>&1 || die "Not inside an SVM git repository"
+case "$UPSTREAM_FILTER" in
+    ""|agave|sbpf) ;;
+    *) die "Invalid --upstream value: $UPSTREAM_FILTER (expected: agave | sbpf)" ;;
+esac
 
-# Resolve the Agave ref (end of range).
-if [[ -z "$AGAVE_REF" ]]; then
-    AGAVE_REF=$(get_agave_pin "$HEAD_REF")
-    [[ -n "$AGAVE_REF" ]] || die "Could not extract Agave rev pin from Cargo.toml at $HEAD_REF. Use --agave-ref."
+# Reject flags that target the upstream the user filtered out.
+if [[ "$UPSTREAM_FILTER" == "agave" ]]; then
+    for f in --sbpf-repo --sbpf-ref; do
+        [[ -n "${FLAG_SET[$f]:-}" ]] && die "$f is not valid with --upstream agave"
+    done
+elif [[ "$UPSTREAM_FILTER" == "sbpf" ]]; then
+    for f in --agave-repo --agave-ref; do
+        [[ -n "${FLAG_SET[$f]:-}" ]] && die "$f is not valid with --upstream sbpf"
+    done
 fi
 
-git -C "$AGAVE_REPO" cat-file -t "$AGAVE_REF" >/dev/null 2>&1 \
-    || die "Agave repo does not contain commit $AGAVE_REF — try: git -C $AGAVE_REPO fetch"
+git rev-parse --git-dir >/dev/null 2>&1 || die "Not inside an SVM git repository"
 
-# Resolve base ref and base pin (start of Agave range).
+want_upstream() {
+    [[ -z "$UPSTREAM_FILTER" || "$UPSTREAM_FILTER" == "$1" ]]
+}
+
+# Resolve base ref (shared across upstreams).
 if [[ -z "$BASE_REF" ]]; then
     BASE_REF=$(git merge-base "$HEAD_REF" master 2>/dev/null) \
         || die "Could not determine merge-base. Use --base-ref."
 fi
 
-BASE_PIN=$(get_agave_pin "$BASE_REF")
-[[ -n "$BASE_PIN" ]] || die "Could not extract Agave rev pin from Cargo.toml at $BASE_REF. Use --base-ref."
-
-git -C "$AGAVE_REPO" cat-file -t "$BASE_PIN" >/dev/null 2>&1 \
-    || die "Agave repo does not contain commit $BASE_PIN — try: git -C $AGAVE_REPO fetch"
-
-echo "$(bold 'SVM <-> Agave Commit Audit')"
-echo ""
-echo "  SVM head ref:   $HEAD_REF"
-echo "  SVM base ref:   $(echo "$BASE_REF" | head -c 12)"
-echo "  Agave ref:      $AGAVE_REF"
-echo "  Agave base pin: $BASE_PIN"
-echo "  Agave repo:     $AGAVE_REPO"
-echo ""
-
-EXIT_CODE=0
-
-echo "SVM commit range:   $(echo "$BASE_REF" | head -c 12)..$HEAD_REF"
-echo "Agave commit range: $BASE_PIN..$AGAVE_REF"
-echo ""
-
-# Collect commit subjects from the SVM branch. These are matched against Agave
-# commits to identify cherry-picks (subjects are preserved by the import script).
+# Collect commit subjects from the SVM branch once. Each upstream audit
+# uses these to identify cherry-picks (subjects are preserved by the
+# import script).
 declare -A svm_subjects=()
 while IFS= read -r subj; do
     svm_subjects["$subj"]=1
 done < <(git log --format="%s" "$BASE_REF..$HEAD_REF")
 
-# Build Agave path args for git log (using agave-side paths).
-path_args=""
-for p in "${SVM_PATHS[@]}"; do
-    path_args="$path_args $(agave_path_for "$p")/"
-done
-
-cherry_count=0
-skip_dep_count=0
-missing_count=0
+# Track which subjects matched any upstream commit, so the end-of-run
+# "SVM-only maintenance commits" section can list anything left over.
 declare -A cherry_picked_subjects=()
+
+EXIT_CODE=0
+TOTAL_CHERRY=0
+TOTAL_SKIP=0
+TOTAL_MISSING=0
+
+# audit_upstream <name> <repo> <base-pin> <head-pin>
+#
+# Walks the upstream's commit range and classifies each commit that touches
+# this upstream's SVM-owned paths.
+audit_upstream() {
+    local name="$1" repo="$2" base_pin="$3" head_pin="$4"
+
+    local path_args=""
+    local p up_path
+    for p in "${SVM_PATHS[@]}"; do
+        [[ "${UPSTREAM[$p]:-}" == "$name" ]] || continue
+        case "$name" in
+            agave) up_path="${AGAVE_PATH[$p]:-$p}" ;;
+            sbpf)  up_path="${SBPF_PATH[$p]:-$p}" ;;
+        esac
+        path_args="$path_args $up_path/"
+    done
+
+    if [[ -z "$path_args" ]]; then
+        echo "  (no $name-owned paths in SVM_PATHS — skipping)"
+        return 0
+    fi
+
+    local cherry=0 skip=0 missing=0
+    local lines=() line sha subject touched_src
+
+    while IFS= read -r line; do
+        lines+=("$line")
+    done < <(git -C "$repo" log --format="%H %s" "$base_pin..$head_pin" -- $path_args)
+
+    for line in "${lines[@]}"; do
+        [[ -n "$line" ]] || continue
+        sha="${line%% *}"
+        subject="${line#* }"
+
+        if [[ -n "${svm_subjects[$subject]+x}" ]]; then
+            printf "    %s  %s\n" "$(green 'OK')" "$subject"
+            cherry_picked_subjects["$subject"]=1
+            cherry=$((cherry + 1))
+        elif echo "$subject" | grep -qP '^build\(deps\):|^chore\(deps\):'; then
+            printf "    %s  %s\n" "$(dim '--')" "$subject"
+            skip=$((skip + 1))
+        else
+            touched_src=$(git -C "$repo" diff-tree --no-commit-id --name-only -r "$sha" -- $path_args \
+                | grep -v 'Cargo\.\(toml\|lock\)$' | head -1 || echo "")
+
+            if [[ -z "$touched_src" ]]; then
+                printf "    %s  %s\n" "$(dim '--')" "$subject"
+                skip=$((skip + 1))
+            else
+                printf "    %s  %s\n" "$(red '??')" "$subject"
+
+                if $SHOW_DIFF; then
+                    echo "        Files in $name SVM paths:"
+                    git -C "$repo" diff-tree --no-commit-id --name-only -r "$sha" -- $path_args \
+                        | sed 's/^/          /'
+                    echo ""
+                fi
+
+                missing=$((missing + 1))
+            fi
+        fi
+    done
+
+    echo ""
+    printf "    Cherry-picked:         %d\n" "$cherry"
+    printf "    Skipped (dep/cargo):   %d\n" "$skip"
+    if [[ $missing -gt 0 ]]; then
+        printf "    $(red 'Unaccounted:           %d')\n" "$missing"
+    else
+        printf "    Unaccounted:           %d\n" "$missing"
+    fi
+
+    TOTAL_CHERRY=$((TOTAL_CHERRY + cherry))
+    TOTAL_SKIP=$((TOTAL_SKIP + skip))
+    TOTAL_MISSING=$((TOTAL_MISSING + missing))
+    [[ $missing -gt 0 ]] && EXIT_CODE=1
+
+    return 0
+}
+
+# Per-upstream pin range resolution + audit.
+declare -A BASE_PIN=()
+declare -A HEAD_PIN=()
+
+resolve_upstream() {
+    local name="$1" repo="$2" head_override="$3" pkg="$4"
+    local base_pin head_pin
+
+    [[ -d "$repo/.git" ]] || die "$name repo not found at $repo (use --$name-repo or --upstream to skip)"
+
+    if [[ -n "$head_override" ]]; then
+        head_pin="$head_override"
+    else
+        head_pin=$(get_pin "$pkg" "$HEAD_REF")
+        [[ -n "$head_pin" ]] || die "Could not extract $name rev pin from Cargo.toml at $HEAD_REF. Use --$name-ref."
+    fi
+    git -C "$repo" cat-file -t "$head_pin" >/dev/null 2>&1 \
+        || die "$name repo does not contain commit $head_pin — try: git -C $repo fetch"
+
+    base_pin=$(get_pin "$pkg" "$BASE_REF")
+    [[ -n "$base_pin" ]] || die "Could not extract $name rev pin from Cargo.toml at $BASE_REF. Use --base-ref."
+    git -C "$repo" cat-file -t "$base_pin" >/dev/null 2>&1 \
+        || die "$name repo does not contain commit $base_pin — try: git -C $repo fetch"
+
+    BASE_PIN[$name]="$base_pin"
+    HEAD_PIN[$name]="$head_pin"
+}
+
+if want_upstream agave; then
+    resolve_upstream agave "$AGAVE_REPO" "$AGAVE_REF" "agave-feature-set"
+fi
+if want_upstream sbpf; then
+    resolve_upstream sbpf "$SBPF_REPO" "$SBPF_REF" "solana-sbpf"
+fi
+
+echo "$(bold 'SVM <-> Upstream Commit Audit')"
+echo ""
+echo "  SVM head ref:   $HEAD_REF"
+echo "  SVM base ref:   $(echo "$BASE_REF" | head -c 12)"
+if want_upstream agave; then
+    echo "  Agave range:    ${BASE_PIN[agave]}..${HEAD_PIN[agave]}   (repo: $AGAVE_REPO)"
+fi
+if want_upstream sbpf; then
+    echo "  sbpf range:     ${BASE_PIN[sbpf]}..${HEAD_PIN[sbpf]}   (repo: $SBPF_REPO)"
+fi
+echo ""
 
 echo "  $(bold 'Legend:')"
 echo "    [cherry-picked]  [dep-bump/cargo-only]  [?missing]"
-echo ""
 
-# Read all agave commits into an array to avoid subshell variable scoping.
-agave_lines=()
-while IFS= read -r line; do
-    agave_lines+=("$line")
-done < <(git -C "$AGAVE_REPO" log --format="%H %s" "$BASE_PIN..$AGAVE_REF" -- $path_args)
-
-for line in "${agave_lines[@]}"; do
-    [[ -n "$line" ]] || continue
-    sha="${line%% *}"
-    subject="${line#* }"
-
-    if [[ -n "${svm_subjects["$subject"]+x}" ]]; then
-        # Subject matches a commit in the SVM branch.
-        printf "    %s  %s\n" "$(green 'OK')" "$subject"
-        cherry_picked_subjects["$subject"]=1
-        cherry_count=$((cherry_count + 1))
-    elif echo "$subject" | grep -qP '^build\(deps\):|^chore\(deps\):'; then
-        # Dependency bump — handled by workspace Cargo.toml, safe to skip.
-        printf "    %s  %s\n" "$(dim '--')" "$subject"
-        skip_dep_count=$((skip_dep_count + 1))
-    else
-        # Check if the commit only touches Cargo.toml/lock in SVM paths
-        # (no source changes) — these are cargo-only, safe to skip.
-        touched_src=$(git -C "$AGAVE_REPO" diff-tree --no-commit-id --name-only -r "$sha" -- $path_args \
-            | grep -v 'Cargo\.\(toml\|lock\)$' | head -1 || echo "")
-
-        if [[ -z "$touched_src" ]]; then
-            printf "    %s  %s\n" "$(dim '--')" "$subject"
-            skip_dep_count=$((skip_dep_count + 1))
-        else
-            # Touches SVM source code but not in SVM — flag it.
-            printf "    %s  %s\n" "$(red '??')" "$subject"
-
-            if $SHOW_DIFF; then
-                echo "        Files in SVM paths:"
-                git -C "$AGAVE_REPO" diff-tree --no-commit-id --name-only -r "$sha" -- $path_args \
-                    | sed 's/^/          /'
-                echo ""
-            fi
-
-            missing_count=$((missing_count + 1))
-        fi
-    fi
-done
-
-echo ""
-echo "  $(bold 'Summary:')"
-printf "    Cherry-picked:         %d\n" "$cherry_count"
-printf "    Skipped (dep/cargo):   %d\n" "$skip_dep_count"
-if [[ $missing_count -gt 0 ]]; then
-    printf "    $(red 'Unaccounted:           %d')\n" "$missing_count"
-    EXIT_CODE=1
-else
-    printf "    Unaccounted:           %d\n" "$missing_count"
+if want_upstream agave; then
+    echo ""
+    echo "$(bold "--- Agave audit (${BASE_PIN[agave]}..${HEAD_PIN[agave]}) ---")"
+    audit_upstream agave "$AGAVE_REPO" "${BASE_PIN[agave]}" "${HEAD_PIN[agave]}"
 fi
 
-# Show SVM-only commits that don't correspond to any Agave cherry-pick.
+if want_upstream sbpf; then
+    echo ""
+    echo "$(bold "--- sbpf audit (${BASE_PIN[sbpf]}..${HEAD_PIN[sbpf]}) ---")"
+    audit_upstream sbpf "$SBPF_REPO" "${BASE_PIN[sbpf]}" "${HEAD_PIN[sbpf]}"
+fi
+
+echo ""
+echo "  $(bold 'Aggregate:')"
+printf "    Cherry-picked:         %d\n" "$TOTAL_CHERRY"
+printf "    Skipped (dep/cargo):   %d\n" "$TOTAL_SKIP"
+if [[ $TOTAL_MISSING -gt 0 ]]; then
+    printf "    $(red 'Unaccounted:           %d')\n" "$TOTAL_MISSING"
+else
+    printf "    Unaccounted:           %d\n" "$TOTAL_MISSING"
+fi
+
+# SVM-only commits that didn't match any upstream cherry-pick.
 echo ""
 echo "  $(bold 'SVM-only maintenance commits:')"
 has_maintenance=false
 while IFS= read -r subject; do
     [[ -n "$subject" ]] || continue
-    if [[ -z "${cherry_picked_subjects["$subject"]+x}" ]]; then
+    if [[ -z "${cherry_picked_subjects[$subject]+x}" ]]; then
         printf "    %s  %s\n" "M " "$subject"
         has_maintenance=true
     fi
@@ -194,7 +290,10 @@ fi
 echo ""
 echo "$(bold '=== Result ===')"
 if [[ $EXIT_CODE -eq 0 ]]; then
-    echo "$(green 'PASS') — all Agave commits accounted for in $BASE_PIN..$AGAVE_REF"
+    parts=()
+    want_upstream agave && parts+=("agave ${BASE_PIN[agave]:0:12}..${HEAD_PIN[agave]:0:12}")
+    want_upstream sbpf  && parts+=("sbpf ${BASE_PIN[sbpf]:0:12}..${HEAD_PIN[sbpf]:0:12}")
+    echo "$(green 'PASS') — all upstream commits accounted for: ${parts[*]}"
 else
     echo "$(yellow 'UNACCOUNTED COMMITS') — review output above"
     echo ""
