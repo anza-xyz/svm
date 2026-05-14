@@ -50,5 +50,5 @@ sync/update-rev-pins.sh agave <new-agave-commit>
 sync/update-rev-pins.sh sbpf <new-sbpf-commit>
 
 # Regenerate the lockfile after either bump.
-cargo tree
+cargo generate-lockfile
 ```
