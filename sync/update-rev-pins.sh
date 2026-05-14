@@ -30,7 +30,10 @@ MANIFEST="Cargo.toml"
 [[ -f "$MANIFEST" ]] || die "$MANIFEST not found"
 
 # Define which package-name prefixes belong to each upstream.
-# The regex is applied to the start of each line in Cargo.toml.
+# The regex is applied to the start of each line in Cargo.toml. The agave
+# pattern uses a PCRE negative lookahead to exclude solana-sbpf, so the
+# match below requires `grep -P` (GNU grep on Linux; BSD grep on macOS
+# does not support -P and will silently match nothing).
 case "$UPSTREAM_NAME" in
     agave) PREFIX_REGEX='^[[:space:]]*(agave-|solana-(?!sbpf[[:space:]]*=))' ;;
     sbpf)  PREFIX_REGEX='^[[:space:]]*solana-sbpf[[:space:]]*=' ;;
