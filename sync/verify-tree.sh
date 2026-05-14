@@ -144,7 +144,7 @@ for svm_pkg_path in "${SVM_PATHS[@]}"; do
     up_ref="${REF[$up]}"
     up_pkg_path=$(upstream_path_for "$svm_pkg_path")
 
-    up_hash=$(git -C "$up_repo" rev-parse "$up_ref:$up_pkg_path" 2>/dev/null || echo "MISSING")
+    up_hash=$(git -C "$up_repo" rev-parse "$(upstream_tree_ref "$up_ref" "$up_pkg_path")" 2>/dev/null || echo "MISSING")
     svm_hash=$(git rev-parse "$HEAD_REF:$svm_pkg_path" 2>/dev/null || echo "MISSING")
 
     label="$svm_pkg_path"
@@ -190,9 +190,15 @@ if [[ ${#mismatch_svm_paths[@]} -gt 0 ]]; then
         fi
 
         # List files relative to crate root (strip the crate prefix) so we
-        # can compare across repos even when directory names differ.
-        up_files=$(git -C "$up_repo" ls-tree -r --name-only "$up_ref" -- "$up_pkg_path/" 2>/dev/null \
-            | sed "s|^$up_pkg_path/||" | sort)
+        # can compare across repos even when directory names differ. When the
+        # upstream is at the repo root, ls-tree already returns root-relative
+        # paths — skip the strip.
+        if [[ "$up_pkg_path" == "." ]]; then
+            up_files=$(git -C "$up_repo" ls-tree -r --name-only "$up_ref" 2>/dev/null | sort)
+        else
+            up_files=$(git -C "$up_repo" ls-tree -r --name-only "$up_ref" -- "$up_pkg_path/" 2>/dev/null \
+                | sed "s|^$up_pkg_path/||" | sort)
+        fi
         svm_files=$(git ls-tree -r --name-only "$HEAD_REF" -- "$svm_pkg_path/" 2>/dev/null \
             | sed "s|^$svm_pkg_path/||" | sort)
 
@@ -211,7 +217,8 @@ if [[ ${#mismatch_svm_paths[@]} -gt 0 ]]; then
         # Shared files with content differences
         while IFS= read -r f; do
             [[ -n "$f" ]] || continue
-            up_blob=$(git -C "$up_repo" rev-parse "$up_ref:$up_pkg_path/$f" 2>/dev/null || echo "")
+            up_ref_expr=$(upstream_blob_ref "$up_ref" "$up_pkg_path" "$f")
+            up_blob=$(git -C "$up_repo" rev-parse "$up_ref_expr" 2>/dev/null || echo "")
             svm_blob=$(git rev-parse "$HEAD_REF:$svm_pkg_path/$f" 2>/dev/null || echo "")
             if [[ "$up_blob" != "$svm_blob" ]]; then
                 printf "    %s %s\n" "$(yellow '~mod')" "$f"
@@ -220,7 +227,7 @@ if [[ ${#mismatch_svm_paths[@]} -gt 0 ]]; then
                     diff --unified=3 \
                         --label "$up:$up_pkg_path/$f" \
                         --label "svm:$svm_pkg_path/$f" \
-                        <(git -C "$up_repo" show "$up_ref:$up_pkg_path/$f" 2>/dev/null) \
+                        <(git -C "$up_repo" show "$up_ref_expr" 2>/dev/null) \
                         <(git show "$HEAD_REF:$svm_pkg_path/$f" 2>/dev/null) \
                         | sed 's/^/        /' || true
                     echo ""

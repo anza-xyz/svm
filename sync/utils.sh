@@ -74,7 +74,11 @@ declare -A AGAVE_PATH=(
     [transaction]=svm-transaction
     [type-overrides]=svm-type-overrides
 )
-declare -A SBPF_PATH=( )  # empty for now; reserved for cleanup-time renames
+# sbpf is subtree-merged from the root of anza-xyz/sbpf, so the SVM `sbpf/`
+# directory maps to "." on the upstream side.
+declare -A SBPF_PATH=(
+    [sbpf]=.
+)
 
 # Look up the upstream-side path for a given SVM path.
 upstream_path_for() {
@@ -84,6 +88,29 @@ upstream_path_for() {
         sbpf)  echo "${SBPF_PATH[$svm_path]:-$svm_path}" ;;
         *)     die "Unknown upstream for path: $svm_path" ;;
     esac
+}
+
+# git rev-parse expression for the root tree of an upstream package. The
+# upstream-at-repo-root case (up_path=".") needs `<ref>^{tree}` because
+# `<ref>:.` is not valid git syntax.
+upstream_tree_ref() {
+    local ref="$1" up_path="$2"
+    if [[ "$up_path" == "." ]]; then
+        printf '%s^{tree}' "$ref"
+    else
+        printf '%s:%s' "$ref" "$up_path"
+    fi
+}
+
+# git rev-parse expression for a file inside an upstream package. Strips
+# the leading "./" in the upstream-at-repo-root case.
+upstream_blob_ref() {
+    local ref="$1" up_path="$2" sub="$3"
+    if [[ "$up_path" == "." ]]; then
+        printf '%s:%s' "$ref" "$sub"
+    else
+        printf '%s:%s/%s' "$ref" "$up_path" "$sub"
+    fi
 }
 
 # Extract the rev pin for a specific package from Cargo.toml at a given git ref.
