@@ -75,18 +75,29 @@ update `rev` pins for whichever upstream(s) advanced, then regenerate
 `Cargo.lock`.
 
 
+The two upstreams use different import shapes on `master`, so identifying
+the new tip pin differs by upstream:
+
+- **Agave** — imports are linear commits that preserve the upstream subject
+  and author. The most recent import sits at the tip of `master`'s
+  first-parent chain (skipping subtree merges). Resolve the upstream SHA by
+  re-matching the preserved subject in the local agave clone.
+- **sbpf** — imports are subtree merges with subject
+  `Merge anza-xyz/sbpf into sbpf/ subdirectory`. The upstream SHA is the
+  second parent of the merge commit.
+
 ```bash
-# Find the most recent Agave import commit on master and resolve its
-# upstream SHA.
-AGAVE_REV_COMMIT=$(git log master --format="%H" --grep="<agave-marker>" -1)
+# Agave: walk master's first-parent chain, skipping merges, to find the
+# most recent import; then look it up by subject in the agave clone.
+AGAVE_REV_COMMIT=$(git log master --first-parent --no-merges --format="%H" -1)
 AGAVE_REV=$(git -C ~/work/agave log --format="%H" --all \
     --grep="$(git log -1 --format='%s' "$AGAVE_REV_COMMIT")" -1)
 sync/update-rev-pins.sh agave "$AGAVE_REV"
 
-# Same for sbpf.
-SBPF_REV_COMMIT=$(git log master --format="%H" --grep="<sbpf-marker>" -1)
-SBPF_REV=$(git -C ~/work/sbpf log --format="%H" --all \
-    --grep="$(git log -1 --format='%s' "$SBPF_REV_COMMIT")" -1)
+# sbpf: the upstream SHA is the second parent of the most recent subtree
+# merge commit.
+SBPF_MERGE=$(git log master --grep="^Merge anza-xyz/sbpf into sbpf" -1 --format="%H")
+SBPF_REV=$(git rev-parse "$SBPF_MERGE^2")
 sync/update-rev-pins.sh sbpf "$SBPF_REV"
 
 cargo generate-lockfile
