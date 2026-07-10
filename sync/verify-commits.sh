@@ -21,12 +21,15 @@
 #   --sbpf-repo PATH    Path to local sbpf checkout (default: ~/work/sbpf).
 #   --sbpf-ref REF      sbpf ref for end of range. Overrides the rev pin
 #                        extracted from Cargo.toml at HEAD_REF.
+#   --sdk-repo PATH     Path to local solana-sdk checkout (default: ~/work/solana-sdk).
+#   --sdk-ref REF       solana-sdk ref for end of range. Overrides the rev pin
+#                        extracted from Cargo.toml at HEAD_REF.
 #   --agave-base-ref REF Agave ref for start of range. Overrides the rev pin
 #                        extracted from Cargo.toml at BASE_REF.
 #   --sbpf-base-ref REF sbpf ref for start of range. Overrides the rev pin
 #                        extracted from Cargo.toml at BASE_REF. Needed for
 #                        subtree-merged upstreams (path dep, no rev pin).
-#   --upstream NAME     Only audit one upstream: agave | sbpf
+#   --upstream NAME     Only audit one upstream: agave | sbpf | sdk
 #   --base-ref REF      SVM ref whose rev pins give the start of each upstream
 #                        range (default: merge-base of HEAD and master).
 #   --head-ref REF      SVM ref whose rev pins give the end of each upstream
@@ -50,6 +53,8 @@ AGAVE_BASE_REF=""
 SBPF_REPO="${SBPF_REPO:-$HOME/work/sbpf}"
 SBPF_REF=""
 SBPF_BASE_REF=""
+SDK_REPO="${SDK_REPO:-$HOME/work/solana-sdk}"
+SDK_REF=""
 UPSTREAM_FILTER=""
 BASE_REF=""
 HEAD_REF="HEAD"
@@ -73,6 +78,8 @@ while [[ $# -gt 0 ]]; do
         --sbpf-repo)    SBPF_REPO="$2";  FLAG_SET[--sbpf-repo]=1;  shift 2 ;;
         --sbpf-ref)     SBPF_REF="$2";   FLAG_SET[--sbpf-ref]=1;   shift 2 ;;
         --sbpf-base-ref) SBPF_BASE_REF="$2"; FLAG_SET[--sbpf-base-ref]=1; shift 2 ;;
+        --sdk-repo)     SDK_REPO="$2";   FLAG_SET[--sdk-repo]=1;   shift 2 ;;
+        --sdk-ref)      SDK_REF="$2";    FLAG_SET[--sdk-ref]=1;    shift 2 ;;
         --upstream)     UPSTREAM_FILTER="$2"; shift 2 ;;
         --base-ref)     BASE_REF="$2";   shift 2 ;;
         --head-ref)     HEAD_REF="$2";   shift 2 ;;
@@ -83,18 +90,22 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$UPSTREAM_FILTER" in
-    ""|agave|sbpf) ;;
-    *) die "Invalid --upstream value: $UPSTREAM_FILTER (expected: agave | sbpf)" ;;
+    ""|agave|sbpf|sdk) ;;
+    *) die "Invalid --upstream value: $UPSTREAM_FILTER (expected: agave | sbpf | sdk)" ;;
 esac
 
 # Reject flags that target the upstream the user filtered out.
 if [[ "$UPSTREAM_FILTER" == "agave" ]]; then
-    for f in --sbpf-repo --sbpf-ref --sbpf-base-ref; do
+    for f in --sbpf-repo --sbpf-ref --sbpf-base-ref --sdk-repo --sdk-ref; do
         [[ -n "${FLAG_SET[$f]:-}" ]] && die "$f is not valid with --upstream agave"
     done
 elif [[ "$UPSTREAM_FILTER" == "sbpf" ]]; then
-    for f in --agave-repo --agave-ref --agave-base-ref; do
+    for f in --agave-repo --agave-ref --agave-base-ref --sdk-repo --sdk-ref; do
         [[ -n "${FLAG_SET[$f]:-}" ]] && die "$f is not valid with --upstream sbpf"
+    done
+elif [[ "$UPSTREAM_FILTER" == "sdk" ]]; then
+    for f in --agave-repo --agave-ref --sbpf-repo --sbpf-ref; do
+        [[ -n "${FLAG_SET[$f]:-}" ]] && die "$f is not valid with --upstream sdk"
     done
 fi
 
@@ -141,6 +152,7 @@ audit_upstream() {
         case "$name" in
             agave) up_path="${AGAVE_PATH[$p]:-$p}" ;;
             sbpf)  up_path="${SBPF_PATH[$p]:-$p}" ;;
+            sdk)   up_path="${SDK_PATH[$p]:-$p}" ;;
         esac
         path_args="$path_args $up_path/"
     done
@@ -246,6 +258,9 @@ fi
 if want_upstream sbpf; then
     resolve_upstream sbpf "$SBPF_REPO" "$SBPF_REF" "solana-sbpf" "$SBPF_BASE_REF"
 fi
+if want_upstream sdk; then
+    resolve_upstream sdk "$SDK_REPO" "$SDK_REF" "solana-svm-transaction"
+fi
 
 echo "$(bold 'SVM <-> Upstream Commit Audit')"
 echo ""
@@ -256,6 +271,9 @@ if want_upstream agave; then
 fi
 if want_upstream sbpf; then
     echo "  sbpf range:     ${BASE_PIN[sbpf]}..${HEAD_PIN[sbpf]}   (repo: $SBPF_REPO)"
+fi
+if want_upstream sdk; then
+    echo "  sdk range:      ${BASE_PIN[sdk]}..${HEAD_PIN[sdk]}   (repo: $SDK_REPO)"
 fi
 echo ""
 
@@ -272,6 +290,12 @@ if want_upstream sbpf; then
     echo ""
     echo "$(bold "--- sbpf audit (${BASE_PIN[sbpf]}..${HEAD_PIN[sbpf]}) ---")"
     audit_upstream sbpf "$SBPF_REPO" "${BASE_PIN[sbpf]}" "${HEAD_PIN[sbpf]}"
+fi
+
+if want_upstream sdk; then
+    echo ""
+    echo "$(bold "--- sdk audit (${BASE_PIN[sdk]}..${HEAD_PIN[sdk]}) ---")"
+    audit_upstream sdk "$SDK_REPO" "${BASE_PIN[sdk]}" "${HEAD_PIN[sdk]}"
 fi
 
 echo ""
@@ -306,6 +330,7 @@ if [[ $EXIT_CODE -eq 0 ]]; then
     parts=()
     want_upstream agave && parts+=("agave ${BASE_PIN[agave]:0:12}..${HEAD_PIN[agave]:0:12}")
     want_upstream sbpf  && parts+=("sbpf ${BASE_PIN[sbpf]:0:12}..${HEAD_PIN[sbpf]:0:12}")
+    want_upstream sdk   && parts+=("sdk ${BASE_PIN[sdk]:0:12}..${HEAD_PIN[sdk]:0:12}")
     echo "$(green 'PASS') — all upstream commits accounted for: ${parts[*]}"
 else
     echo "$(yellow 'UNACCOUNTED COMMITS') — review output above"

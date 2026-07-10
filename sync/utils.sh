@@ -5,9 +5,10 @@
 # Sourced by verify-tree.sh, verify-commits.sh, and update-rev-pins.sh.
 # Not executable on its own.
 #
-# The SVM repo tracks two upstreams:
-#   * agave — anza-xyz/agave (filtered to SVM-owned crate paths)
-#   * sbpf  — anza-xyz/sbpf  (subtree-merged into the sbpf/ directory)
+# The SVM repo tracks three upstreams:
+#   * agave — anza-xyz/agave      (filtered to SVM-owned crate paths)
+#   * sbpf  — anza-xyz/sbpf       (subtree-merged into the sbpf/ directory)
+#   * sdk   — anza-xyz/solana-sdk (svm-transaction, moved out of agave)
 #
 # The UPSTREAM map below tags each crate path with the upstream it came from.
 
@@ -58,7 +59,7 @@ declare -A UPSTREAM=(
     [svm-test-harness]=agave
     [syscalls]=agave
     [timings]=agave
-    [transaction]=agave
+    [transaction]=sdk
     [transaction-context]=agave
     [type-overrides]=agave
 )
@@ -71,13 +72,17 @@ declare -A AGAVE_PATH=(
     [log-collector]=svm-log-collector
     [measure]=svm-measure
     [timings]=svm-timings
-    [transaction]=svm-transaction
     [type-overrides]=svm-type-overrides
 )
 # sbpf is subtree-merged from the root of anza-xyz/sbpf, so the SVM `sbpf/`
 # directory maps to "." on the upstream side.
 declare -A SBPF_PATH=(
     [sbpf]=.
+)
+# svm-transaction was moved out of agave into anza-xyz/solana-sdk, where it
+# lives at svm-transaction/ on the upstream side.
+declare -A SDK_PATH=(
+    [transaction]=svm-transaction
 )
 
 # Look up the upstream-side path for a given SVM path.
@@ -86,6 +91,7 @@ upstream_path_for() {
     case "${UPSTREAM[$svm_path]:-}" in
         agave) echo "${AGAVE_PATH[$svm_path]:-$svm_path}" ;;
         sbpf)  echo "${SBPF_PATH[$svm_path]:-$svm_path}" ;;
+        sdk)   echo "${SDK_PATH[$svm_path]:-$svm_path}" ;;
         *)     die "Unknown upstream for path: $svm_path" ;;
     esac
 }
@@ -121,6 +127,7 @@ upstream_blob_ref() {
 # Usage: get_pin <package-name> [ref]
 # Example: get_pin agave-feature-set HEAD
 #          get_pin solana-sbpf HEAD
+#          get_pin solana-svm-transaction HEAD
 get_pin() {
     local pkg="$1" ref="${2:-HEAD}"
     git cat-file -e "$ref:Cargo.toml" 2>/dev/null || return 0

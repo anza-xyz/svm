@@ -17,7 +17,10 @@
 #   --sbpf-repo PATH    Path to local sbpf checkout (default: ~/work/sbpf)
 #   --sbpf-ref REF      sbpf commit to compare against (default: extracted
 #                        from solana-sbpf rev pin in Cargo.toml at HEAD_REF)
-#   --upstream NAME     Only verify paths from one upstream: agave | sbpf
+#   --sdk-repo PATH     Path to local solana-sdk checkout (default: ~/work/solana-sdk)
+#   --sdk-ref REF       solana-sdk commit to compare against (default: extracted
+#                        from solana-svm-transaction rev pin in Cargo.toml at HEAD_REF)
+#   --upstream NAME     Only verify paths from one upstream: agave | sbpf | sdk
 #   --head-ref REF      SVM ref to verify (default: HEAD)
 #   --diff              Show unified diffs for mismatched files
 #   --help              Show this help
@@ -36,6 +39,8 @@ AGAVE_REPO="${AGAVE_REPO:-$HOME/work/agave}"
 AGAVE_REF=""
 SBPF_REPO="${SBPF_REPO:-$HOME/work/sbpf}"
 SBPF_REF=""
+SDK_REPO="${SDK_REPO:-$HOME/work/solana-sdk}"
+SDK_REF=""
 UPSTREAM_FILTER=""
 HEAD_REF="HEAD"
 SHOW_DIFF=false
@@ -55,6 +60,8 @@ while [[ $# -gt 0 ]]; do
         --agave-ref)    AGAVE_REF="$2";  FLAG_SET[--agave-ref]=1;  shift 2 ;;
         --sbpf-repo)    SBPF_REPO="$2";  FLAG_SET[--sbpf-repo]=1;  shift 2 ;;
         --sbpf-ref)     SBPF_REF="$2";   FLAG_SET[--sbpf-ref]=1;   shift 2 ;;
+        --sdk-repo)     SDK_REPO="$2";   FLAG_SET[--sdk-repo]=1;   shift 2 ;;
+        --sdk-ref)      SDK_REF="$2";    FLAG_SET[--sdk-ref]=1;    shift 2 ;;
         --upstream)     UPSTREAM_FILTER="$2"; shift 2 ;;
         --head-ref)     HEAD_REF="$2";   shift 2 ;;
         --diff)         SHOW_DIFF=true;  shift ;;
@@ -64,18 +71,22 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$UPSTREAM_FILTER" in
-    ""|agave|sbpf) ;;
-    *) die "Invalid --upstream value: $UPSTREAM_FILTER (expected: agave | sbpf)" ;;
+    ""|agave|sbpf|sdk) ;;
+    *) die "Invalid --upstream value: $UPSTREAM_FILTER (expected: agave | sbpf | sdk)" ;;
 esac
 
 # Reject flags that target the upstream the user filtered out.
 if [[ "$UPSTREAM_FILTER" == "agave" ]]; then
-    for f in --sbpf-repo --sbpf-ref; do
+    for f in --sbpf-repo --sbpf-ref --sdk-repo --sdk-ref; do
         [[ -n "${FLAG_SET[$f]:-}" ]] && die "$f is not valid with --upstream agave"
     done
 elif [[ "$UPSTREAM_FILTER" == "sbpf" ]]; then
-    for f in --agave-repo --agave-ref; do
+    for f in --agave-repo --agave-ref --sdk-repo --sdk-ref; do
         [[ -n "${FLAG_SET[$f]:-}" ]] && die "$f is not valid with --upstream sbpf"
+    done
+elif [[ "$UPSTREAM_FILTER" == "sdk" ]]; then
+    for f in --agave-repo --agave-ref --sbpf-repo --sbpf-ref; do
+        [[ -n "${FLAG_SET[$f]:-}" ]] && die "$f is not valid with --upstream sdk"
     done
 fi
 
@@ -113,6 +124,18 @@ if want_upstream sbpf; then
     REF[sbpf]="$SBPF_REF"
 fi
 
+if want_upstream sdk; then
+    [[ -d "$SDK_REPO/.git" ]] || die "solana-sdk repo not found at $SDK_REPO (use --sdk-repo, or --upstream agave to skip)"
+    if [[ -z "$SDK_REF" ]]; then
+        SDK_REF=$(get_pin "solana-svm-transaction" "$HEAD_REF")
+        [[ -n "$SDK_REF" ]] || die "Could not extract sdk rev pin from Cargo.toml at $HEAD_REF. Use --sdk-ref."
+    fi
+    git -C "$SDK_REPO" cat-file -t "$SDK_REF" >/dev/null 2>&1 \
+        || die "solana-sdk repo does not contain commit $SDK_REF — try: git -C $SDK_REPO fetch"
+    REPO[sdk]="$SDK_REPO"
+    REF[sdk]="$SDK_REF"
+fi
+
 echo "$(bold 'SVM <-> Upstream Tree Comparison')"
 echo ""
 echo "  SVM head ref:   $HEAD_REF"
@@ -121,6 +144,9 @@ if want_upstream agave; then
 fi
 if want_upstream sbpf; then
     echo "  sbpf ref:       $SBPF_REF   (repo: $SBPF_REPO)"
+fi
+if want_upstream sdk; then
+    echo "  sdk ref:        $SDK_REF   (repo: $SDK_REPO)"
 fi
 echo ""
 
@@ -245,6 +271,7 @@ if [[ $EXIT_CODE -eq 0 ]]; then
     parts=()
     want_upstream agave && parts+=("agave@$AGAVE_REF")
     want_upstream sbpf  && parts+=("sbpf@$SBPF_REF")
+    want_upstream sdk   && parts+=("sdk@$SDK_REF")
     echo "$(green 'PASS') — SVM tree matches ${parts[*]}"
 else
     echo "$(yellow 'DIVERGENCES FOUND') — review output above"
