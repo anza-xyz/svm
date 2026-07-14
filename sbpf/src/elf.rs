@@ -42,7 +42,10 @@ use std::sync::Arc;
 use shuttle::sync::Arc;
 
 /// Error definitions
+// Note: `#[repr(u64)]` is used for `Self::discriminant`, but the actual
+// memory layout of this enum's variants is not depended on by the VM.
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[repr(u64)]
 pub enum ElfError {
     /// Failed to parse ELF file
     #[error("Failed to parse ELF file: {0}")]
@@ -113,6 +116,15 @@ pub enum ElfError {
     /// Invalid program header
     #[error("Invalid ELF program header")]
     InvalidProgramHeader,
+}
+
+impl ElfError {
+    /// Returns the enum discriminant as a `u64`.
+    ///
+    /// This is sound only because of the `#[repr(u64)]` attribute on the enum.
+    pub fn discriminant(&self) -> u64 {
+        unsafe { *std::ptr::addr_of!(*self).cast::<u64>() }
+    }
 }
 
 impl From<ElfParserError> for ElfError {
@@ -619,29 +631,35 @@ impl<C: ContextObject> Executable<C> {
                     symbol_table_section_header = Some(section_header);
                 }
             }
-            let symbol_names_section_header = symbol_names_section_header.unwrap();
-            let symbol_table: &[Elf64Sym] =
-                Elf64::slice_from_section_header(elf_bytes, symbol_table_section_header.unwrap())
-                    .unwrap();
-            for symbol in symbol_table {
-                if symbol.st_info & STT_FUNC == 0 {
-                    continue;
+            // A well-formed ELF usually has both as long as it's not stripped.
+            match (symbol_names_section_header, symbol_table_section_header) {
+                (Some(symbol_names_section_header), Some(symbol_table_section_header)) => {
+                    let symbol_table: &[Elf64Sym] =
+                        Elf64::slice_from_section_header(elf_bytes, symbol_table_section_header)
+                            .unwrap();
+                    for symbol in symbol_table {
+                        if symbol.st_info & STT_FUNC == 0 {
+                            continue;
+                        }
+                        let target_pc = symbol
+                            .st_value
+                            .saturating_sub(bytecode_header.p_vaddr)
+                            .checked_div(ebpf::INSN_SIZE as u64)
+                            .unwrap_or_default() as usize;
+                        let name = Elf64::get_string_in_section(
+                            elf_bytes,
+                            symbol_names_section_header,
+                            symbol.st_name as Elf64Word,
+                            u8::MAX as usize,
+                        )
+                        .unwrap();
+                        function_registry
+                            .register_function(target_pc as u32, name, target_pc)
+                            .unwrap();
+                    }
                 }
-                let target_pc = symbol
-                    .st_value
-                    .saturating_sub(bytecode_header.p_vaddr)
-                    .checked_div(ebpf::INSN_SIZE as u64)
-                    .unwrap_or_default() as usize;
-                let name = Elf64::get_string_in_section(
-                    elf_bytes,
-                    symbol_names_section_header,
-                    symbol.st_name as Elf64Word,
-                    u8::MAX as usize,
-                )
-                .unwrap();
-                function_registry
-                    .register_function(target_pc as u32, name, target_pc)
-                    .unwrap();
+                (None, None) => { /* missing both sections is okay */ }
+                _ => return Err(ElfParserError::InvalidSectionHeader),
             }
         }
 
