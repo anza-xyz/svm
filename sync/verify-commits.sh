@@ -21,6 +21,11 @@
 #   --sbpf-repo PATH    Path to local sbpf checkout (default: ~/work/sbpf).
 #   --sbpf-ref REF      sbpf ref for end of range. Overrides the rev pin
 #                        extracted from Cargo.toml at HEAD_REF.
+#   --agave-base-ref REF Agave ref for start of range. Overrides the rev pin
+#                        extracted from Cargo.toml at BASE_REF.
+#   --sbpf-base-ref REF sbpf ref for start of range. Overrides the rev pin
+#                        extracted from Cargo.toml at BASE_REF. Needed for
+#                        subtree-merged upstreams (path dep, no rev pin).
 #   --upstream NAME     Only audit one upstream: agave | sbpf
 #   --base-ref REF      SVM ref whose rev pins give the start of each upstream
 #                        range (default: merge-base of HEAD and master).
@@ -41,8 +46,10 @@ source "$SCRIPT_DIR/utils.sh"
 
 AGAVE_REPO="${AGAVE_REPO:-$HOME/work/agave}"
 AGAVE_REF=""
+AGAVE_BASE_REF=""
 SBPF_REPO="${SBPF_REPO:-$HOME/work/sbpf}"
 SBPF_REF=""
+SBPF_BASE_REF=""
 UPSTREAM_FILTER=""
 BASE_REF=""
 HEAD_REF="HEAD"
@@ -62,8 +69,10 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --agave-repo)   AGAVE_REPO="$2"; FLAG_SET[--agave-repo]=1; shift 2 ;;
         --agave-ref)    AGAVE_REF="$2";  FLAG_SET[--agave-ref]=1;  shift 2 ;;
+        --agave-base-ref) AGAVE_BASE_REF="$2"; FLAG_SET[--agave-base-ref]=1; shift 2 ;;
         --sbpf-repo)    SBPF_REPO="$2";  FLAG_SET[--sbpf-repo]=1;  shift 2 ;;
         --sbpf-ref)     SBPF_REF="$2";   FLAG_SET[--sbpf-ref]=1;   shift 2 ;;
+        --sbpf-base-ref) SBPF_BASE_REF="$2"; FLAG_SET[--sbpf-base-ref]=1; shift 2 ;;
         --upstream)     UPSTREAM_FILTER="$2"; shift 2 ;;
         --base-ref)     BASE_REF="$2";   shift 2 ;;
         --head-ref)     HEAD_REF="$2";   shift 2 ;;
@@ -80,11 +89,11 @@ esac
 
 # Reject flags that target the upstream the user filtered out.
 if [[ "$UPSTREAM_FILTER" == "agave" ]]; then
-    for f in --sbpf-repo --sbpf-ref; do
+    for f in --sbpf-repo --sbpf-ref --sbpf-base-ref; do
         [[ -n "${FLAG_SET[$f]:-}" ]] && die "$f is not valid with --upstream agave"
     done
 elif [[ "$UPSTREAM_FILTER" == "sbpf" ]]; then
-    for f in --agave-repo --agave-ref; do
+    for f in --agave-repo --agave-ref --agave-base-ref; do
         [[ -n "${FLAG_SET[$f]:-}" ]] && die "$f is not valid with --upstream sbpf"
     done
 fi
@@ -204,7 +213,7 @@ declare -A BASE_PIN=()
 declare -A HEAD_PIN=()
 
 resolve_upstream() {
-    local name="$1" repo="$2" head_override="$3" pkg="$4"
+    local name="$1" repo="$2" head_override="$3" pkg="$4" base_override="$5"
     local base_pin head_pin
 
     [[ -d "$repo/.git" ]] || die "$name repo not found at $repo (use --$name-repo or --upstream to skip)"
@@ -218,8 +227,12 @@ resolve_upstream() {
     git -C "$repo" cat-file -t "$head_pin" >/dev/null 2>&1 \
         || die "$name repo does not contain commit $head_pin — try: git -C $repo fetch"
 
-    base_pin=$(get_pin "$pkg" "$BASE_REF")
-    [[ -n "$base_pin" ]] || die "Could not extract $name rev pin from Cargo.toml at $BASE_REF. Use --base-ref."
+    if [[ -n "$base_override" ]]; then
+        base_pin="$base_override"
+    else
+        base_pin=$(get_pin "$pkg" "$BASE_REF")
+        [[ -n "$base_pin" ]] || die "Could not extract $name rev pin from Cargo.toml at $BASE_REF. Use --base-ref or --$name-base-ref."
+    fi
     git -C "$repo" cat-file -t "$base_pin" >/dev/null 2>&1 \
         || die "$name repo does not contain commit $base_pin — try: git -C $repo fetch"
 
@@ -228,10 +241,10 @@ resolve_upstream() {
 }
 
 if want_upstream agave; then
-    resolve_upstream agave "$AGAVE_REPO" "$AGAVE_REF" "agave-feature-set"
+    resolve_upstream agave "$AGAVE_REPO" "$AGAVE_REF" "agave-feature-set" "$AGAVE_BASE_REF"
 fi
 if want_upstream sbpf; then
-    resolve_upstream sbpf "$SBPF_REPO" "$SBPF_REF" "solana-sbpf"
+    resolve_upstream sbpf "$SBPF_REPO" "$SBPF_REF" "solana-sbpf" "$SBPF_BASE_REF"
 fi
 
 echo "$(bold 'SVM <-> Upstream Commit Audit')"
