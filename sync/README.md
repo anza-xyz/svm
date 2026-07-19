@@ -1,13 +1,15 @@
 # Sync Tools
 
-The SVM repo tracks two upstreams:
+The SVM repo tracks three upstreams:
 
-- **agave** — `anza-xyz/agave` (default local checkout: `~/work/agave`)
-- **sbpf**  — `anza-xyz/sbpf`  (default local checkout: `~/work/sbpf`)
+- **agave** — `anza-xyz/agave`      (default local checkout: `~/work/agave`)
+- **sbpf**  — `anza-xyz/sbpf`       (default local checkout: `~/work/sbpf`)
+- **sdk**   — `anza-xyz/solana-sdk` (default local checkout: `~/work/solana-sdk`)
 
-Override with `--agave-repo` / `--sbpf-repo` (or env vars `AGAVE_REPO` /
-`SBPF_REPO`). All scripts accept `--upstream agave|sbpf` to limit work to a
-single upstream — useful when reviewing a sync PR that targets only one.
+Override with `--agave-repo` / `--sbpf-repo` / `--sdk-repo` (or env vars
+`AGAVE_REPO` / `SBPF_REPO` / `SDK_REPO`). All scripts accept
+`--upstream agave|sbpf|sdk` to limit work to a single upstream — useful when
+reviewing a sync PR that targets only one.
 
 ## Tree comparison (`verify-tree.sh`)
 
@@ -18,6 +20,7 @@ sync/verify-tree.sh
 # Compare against an explicit ref for one upstream (e.g., for sync PRs).
 sync/verify-tree.sh --upstream agave --agave-ref <agave-commit>
 sync/verify-tree.sh --upstream sbpf  --sbpf-ref  <sbpf-commit>
+sync/verify-tree.sh --upstream sdk   --sdk-ref   <solana-sdk-commit>
 
 # Show unified diffs for mismatched files.
 sync/verify-tree.sh --diff
@@ -32,6 +35,7 @@ sync/verify-commits.sh
 # Audit only one upstream.
 sync/verify-commits.sh --upstream agave
 sync/verify-commits.sh --upstream sbpf
+sync/verify-commits.sh --upstream sdk
 
 # Audit from a specific base ref.
 sync/verify-commits.sh --base-ref <svm-ref>
@@ -49,6 +53,9 @@ sync/update-rev-pins.sh agave <new-agave-commit>
 # Bump the solana-sbpf rev pin.
 sync/update-rev-pins.sh sbpf <new-sbpf-commit>
 
-# Regenerate the lockfile after either bump.
+# Bump the solana-svm-transaction rev pin.
+sync/update-rev-pins.sh sdk <new-solana-sdk-commit>
+
+# Regenerate the lockfile after any bump.
 cargo generate-lockfile
 ```

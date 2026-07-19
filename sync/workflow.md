@@ -3,11 +3,13 @@
 ## Branch Structure
 
 🟢 **`master`** — Imported upstream commits only, in chronological order.
-Sourced from two upstreams:
+Sourced from three upstreams:
 
 - `anza-xyz/agave` — filtered to SVM-owned crate paths, with path renames
   applied (e.g. `svm-callback/` in agave becomes `callback/` in SVM).
 - `anza-xyz/sbpf` — imported as a subtree merge into `sbpf/`.
+- `anza-xyz/solana-sdk` — filtered to `svm-transaction`, renamed to
+  `transaction/` in SVM (moved out of agave).
 
 Each commit preserves original commit metadata.
 
@@ -36,15 +38,16 @@ is available when editing the anchor during a rebase.
 
 ### `rev` pins
 
-The workspace `Cargo.toml` carries two distinct rev pin sets, one per
+The workspace `Cargo.toml` carries three distinct rev pin sets, one per
 upstream:
 
-- **Agave-prefixed packages** (`agave-*`, `solana-*` excluding `solana-sbpf`)
-  pin to a commit in `anza-xyz/agave`.
+- **Agave-prefixed packages** (`agave-*`, `solana-*` excluding `solana-sbpf`
+  and `solana-svm-transaction`) pin to a commit in `anza-xyz/agave`.
 - **`solana-sbpf`** pins to a commit in `anza-xyz/sbpf`.
+- **`solana-svm-transaction`** pins to a commit in `anza-xyz/solana-sdk`.
 
-The two sets advance independently — sync PRs target one upstream at a time,
-so a rebase typically bumps one set and leaves the other alone.
+The three sets advance independently — sync PRs target one upstream at a time,
+so a rebase typically bumps one set and leaves the others alone.
 
 ## Syncing Commits from an Upstream
 
@@ -64,6 +67,7 @@ PR is opened on SVM `master`, reviewers verify with the matching
 ```bash
 sync/verify-tree.sh --upstream agave   # for Agave sync PRs
 sync/verify-tree.sh --upstream sbpf    # for sbpf sync PRs
+sync/verify-tree.sh --upstream sdk     # for solana-sdk sync PRs
 ```
 
 Merge the new commits to `master`.
@@ -75,8 +79,8 @@ update `rev` pins for whichever upstream(s) advanced, then regenerate
 `Cargo.lock`.
 
 
-The two upstreams use different import shapes on `master`, so identifying
-the new tip pin differs by upstream:
+The upstreams use different import shapes on `master`, so identifying the new
+tip pin differs by upstream:
 
 - **Agave** — imports are linear commits that preserve the upstream subject
   and author. The most recent import sits at the tip of `master`'s
@@ -85,6 +89,9 @@ the new tip pin differs by upstream:
 - **sbpf** — imports are subtree merges with subject
   `Merge anza-xyz/sbpf into sbpf/ subdirectory`. The upstream SHA is the
   second parent of the merge commit.
+- **sdk** — same linear, subject-preserving shape as agave. Because agave and
+  sdk imports look alike on `master`, disambiguate by which clone the subject
+  resolves in: an sdk import resolves in the solana-sdk clone, not agave.
 
 ```bash
 # Agave: walk master's first-parent chain, skipping merges, to find the
@@ -99,6 +106,13 @@ sync/update-rev-pins.sh agave "$AGAVE_REV"
 SBPF_MERGE=$(git log master --grep="^Merge anza-xyz/sbpf into sbpf" -1 --format="%H")
 SBPF_REV=$(git rev-parse "$SBPF_MERGE^2")
 sync/update-rev-pins.sh sbpf "$SBPF_REV"
+
+# sdk: locate the most recent import that touches transaction/ and resolve
+# its preserved subject in the solana-sdk clone.
+SDK_REV_COMMIT=$(git log master --first-parent --no-merges --format="%H" -1 -- transaction/)
+SDK_REV=$(git -C ~/work/solana-sdk log --format="%H" --all \
+    --grep="$(git log -1 --format='%s' "$SDK_REV_COMMIT")" -1)
+sync/update-rev-pins.sh sdk "$SDK_REV"
 
 cargo generate-lockfile
 ```

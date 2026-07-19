@@ -2,13 +2,16 @@
 #
 # update-rev-pins.sh — Update upstream rev pins in the workspace Cargo.toml.
 #
-# The SVM workspace pins two upstreams via git deps:
-#   * agave — packages prefixed `agave-` or `solana-` (excluding solana-sbpf)
+# The SVM workspace pins three upstreams via git deps:
+#   * agave — packages prefixed `agave-` or `solana-` (excluding solana-sbpf
+#             and solana-svm-transaction)
 #   * sbpf  — the `solana-sbpf` package
+#   * sdk   — the `solana-svm-transaction` package (moved out of agave)
 #
 # Usage:
 #   sync/update-rev-pins.sh agave <new-rev>
 #   sync/update-rev-pins.sh sbpf  <new-rev>
+#   sync/update-rev-pins.sh sdk   <new-rev>
 #
 # Useful during rebase of the `svm` branch after syncing `master`.
 
@@ -19,7 +22,7 @@ source "$SCRIPT_DIR/utils.sh"
 
 if [[ $# -ne 2 ]] || [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
     echo "Usage: sync/update-rev-pins.sh <upstream> <new-rev>"
-    echo "  upstream: agave | sbpf"
+    echo "  upstream: agave | sbpf | sdk"
     exit 2
 fi
 
@@ -31,13 +34,15 @@ MANIFEST="Cargo.toml"
 
 # Define which package-name prefixes belong to each upstream.
 # The regex is applied to the start of each line in Cargo.toml. The agave
-# pattern uses a PCRE negative lookahead to exclude solana-sbpf, so the
-# match below requires `grep -P` (GNU grep on Linux; BSD grep on macOS
-# does not support -P and will silently match nothing).
+# pattern uses PCRE negative lookaheads to exclude solana-sbpf and
+# solana-svm-transaction (which belong to other upstreams), so the match
+# below requires `grep -P` (GNU grep on Linux; BSD grep on macOS does not
+# support -P and will silently match nothing).
 case "$UPSTREAM_NAME" in
-    agave) PREFIX_REGEX='^[[:space:]]*(agave-|solana-(?!sbpf[[:space:]]*=))' ;;
+    agave) PREFIX_REGEX='^[[:space:]]*(agave-|solana-(?!sbpf[[:space:]]*=)(?!svm-transaction[[:space:]]*=))' ;;
     sbpf)  PREFIX_REGEX='^[[:space:]]*solana-sbpf[[:space:]]*=' ;;
-    *)     die "Unknown upstream: $UPSTREAM_NAME (expected: agave | sbpf)" ;;
+    sdk)   PREFIX_REGEX='^[[:space:]]*solana-svm-transaction[[:space:]]*=' ;;
+    *)     die "Unknown upstream: $UPSTREAM_NAME (expected: agave | sbpf | sdk)" ;;
 esac
 
 REV_REGEX='rev[[:space:]]*=[[:space:]]*"[^"]+"'
