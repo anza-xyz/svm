@@ -29,6 +29,9 @@
 #   --sbpf-base-ref REF sbpf ref for start of range. Overrides the rev pin
 #                        extracted from Cargo.toml at BASE_REF. Needed for
 #                        subtree-merged upstreams (path dep, no rev pin).
+#   --sdk-base-ref REF  solana-sdk ref for start of range. Overrides the rev pin
+#                        extracted from Cargo.toml at BASE_REF. Needed for
+#                        subtree-merged upstreams (path dep, no rev pin).
 #   --upstream NAME     Only audit one upstream: agave | sbpf | sdk
 #   --base-ref REF      SVM ref whose rev pins give the start of each upstream
 #                        range (default: merge-base of HEAD and master).
@@ -55,6 +58,7 @@ SBPF_REF=""
 SBPF_BASE_REF=""
 SDK_REPO="${SDK_REPO:-$HOME/work/solana-sdk}"
 SDK_REF=""
+SDK_BASE_REF=""
 UPSTREAM_FILTER=""
 BASE_REF=""
 HEAD_REF="HEAD"
@@ -80,6 +84,7 @@ while [[ $# -gt 0 ]]; do
         --sbpf-base-ref) SBPF_BASE_REF="$2"; FLAG_SET[--sbpf-base-ref]=1; shift 2 ;;
         --sdk-repo)     SDK_REPO="$2";   FLAG_SET[--sdk-repo]=1;   shift 2 ;;
         --sdk-ref)      SDK_REF="$2";    FLAG_SET[--sdk-ref]=1;    shift 2 ;;
+        --sdk-base-ref) SDK_BASE_REF="$2"; FLAG_SET[--sdk-base-ref]=1; shift 2 ;;
         --upstream)     UPSTREAM_FILTER="$2"; shift 2 ;;
         --base-ref)     BASE_REF="$2";   shift 2 ;;
         --head-ref)     HEAD_REF="$2";   shift 2 ;;
@@ -96,15 +101,15 @@ esac
 
 # Reject flags that target the upstream the user filtered out.
 if [[ "$UPSTREAM_FILTER" == "agave" ]]; then
-    for f in --sbpf-repo --sbpf-ref --sbpf-base-ref --sdk-repo --sdk-ref; do
+    for f in --sbpf-repo --sbpf-ref --sbpf-base-ref --sdk-repo --sdk-ref --sdk-base-ref; do
         [[ -n "${FLAG_SET[$f]:-}" ]] && die "$f is not valid with --upstream agave"
     done
 elif [[ "$UPSTREAM_FILTER" == "sbpf" ]]; then
-    for f in --agave-repo --agave-ref --agave-base-ref --sdk-repo --sdk-ref; do
+    for f in --agave-repo --agave-ref --agave-base-ref --sdk-repo --sdk-ref --sdk-base-ref; do
         [[ -n "${FLAG_SET[$f]:-}" ]] && die "$f is not valid with --upstream sbpf"
     done
 elif [[ "$UPSTREAM_FILTER" == "sdk" ]]; then
-    for f in --agave-repo --agave-ref --sbpf-repo --sbpf-ref; do
+    for f in --agave-repo --agave-ref --agave-base-ref --sbpf-repo --sbpf-ref --sbpf-base-ref; do
         [[ -n "${FLAG_SET[$f]:-}" ]] && die "$f is not valid with --upstream sdk"
     done
 fi
@@ -259,7 +264,7 @@ if want_upstream sbpf; then
     resolve_upstream sbpf "$SBPF_REPO" "$SBPF_REF" "solana-sbpf" "$SBPF_BASE_REF"
 fi
 if want_upstream sdk; then
-    resolve_upstream sdk "$SDK_REPO" "$SDK_REF" "solana-svm-transaction"
+    resolve_upstream sdk "$SDK_REPO" "$SDK_REF" "solana-svm-transaction" "$SDK_BASE_REF"
 fi
 
 echo "$(bold 'SVM <-> Upstream Commit Audit')"
